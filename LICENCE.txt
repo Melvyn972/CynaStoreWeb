@@ -1,0 +1,9 @@
+Projet Cyna — © 2025 Melvyn Thierry-Bellefond Thomas Lindeker Nijel Sarmiento
+
+Tous droits réservés.
+
+Ce projet et son contenu (code source, design, documentation) sont protégés par les lois sur le droit d’auteur. Toute reproduction, distribution, modification ou utilisation commerciale, totale ou partielle, sans autorisation écrite préalable de l’auteur, est strictement interdite.
+
+Le code et les fichiers présents dans ce dépôt sont fournis à des fins pédagogiques uniquement dans le cadre d’un projet étudiant.
+
+Contact : tlindeker@gmail.com - melvyn.thierrybellefond@gmail.com - nijelsarmiento@gmail.com
