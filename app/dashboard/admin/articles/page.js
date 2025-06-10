@@ -3,6 +3,7 @@ import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
 import Link from "next/link";
 import Image from "next/image";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +22,9 @@ export default async function AdminArticlesPage() {
   const averagePrice = totalArticles > 0 ? totalValue / totalArticles : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="ios-container space-y-8">
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container space-y-8 relative z-20">
         {/* Header */}
         <div className="flex items-center justify-between ios-fade-in">
           <div>

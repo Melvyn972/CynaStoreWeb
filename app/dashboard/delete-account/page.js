@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export default function DeleteAccountPage() {
   const router = useRouter();
@@ -43,8 +44,9 @@ export default function DeleteAccountPage() {
   };
 
   return (
-    <main className="min-h-screen p-4 md:p-8 pb-24 bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <section className="max-w-3xl mx-auto">
+    <main className="min-h-screen relative overflow-hidden p-4 md:p-8 pb-24">
+      <BackgroundEffects />
+      <section className="max-w-3xl mx-auto relative z-20">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 dark:text-white">Supprimer mon compte</h1>
           <Link 

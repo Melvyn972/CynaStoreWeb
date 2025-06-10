@@ -16,6 +16,34 @@ export const viewport = {
 
 export const metadata = getSEOTags();
 
+// Script pour initialiser le thème immédiatement
+const themeScript = `
+(function() {
+  try {
+    const storedTheme = localStorage.getItem('theme');
+    let theme = 'light';
+    
+    if (storedTheme && (storedTheme === 'dark' || storedTheme === 'light')) {
+      theme = storedTheme;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      theme = 'dark';
+    }
+    
+    const root = document.documentElement;
+    
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.setAttribute('data-theme', 'cynaStore-dark');
+    } else {
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'cynaStore');
+    }
+  } catch (e) {
+    console.warn('Error initializing theme:', e);
+  }
+})();
+`;
+
 export default function RootLayout({ children }) {
 	return (
 		<html
@@ -23,6 +51,9 @@ export default function RootLayout({ children }) {
 			className={`${font.className} antialiased`}
 			suppressHydrationWarning
 		>
+			<head>
+				<script dangerouslySetInnerHTML={{ __html: themeScript }} />
+			</head>
 			<body className="bg-white dark:bg-black text-base-content min-h-screen transition-colors duration-200">
 				<ClientLayout>{children}</ClientLayout>
 			</body>

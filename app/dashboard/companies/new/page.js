@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 import toast from "react-hot-toast";
 import ButtonAccount from "@/components/ButtonAccount";
 import ThemeToggle from "@/app/components/ThemeToggle";
@@ -62,8 +63,9 @@ export default function NewCompanyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="ios-container space-y-8">
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container space-y-8 relative z-20">
         {/* Header avec navigation */}
         <div className="flex items-center justify-between ios-fade-in">
           <div className="flex items-center gap-4">

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export default function EditArticle({ params }) {
   const router = useRouter();
@@ -116,8 +117,9 @@ export default function EditArticle({ params }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-        <div className="ios-container">
+      <div className="min-h-screen relative overflow-hidden p-6">
+        <BackgroundEffects />
+        <div className="ios-container relative z-20">
           <div className="dashboard-card">
             <div className="flex justify-center items-center py-12">
               <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -130,8 +132,9 @@ export default function EditArticle({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="ios-container space-y-8">
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container space-y-8 relative z-20">
         {/* Header avec boutons de navigation */}
         <div className="flex items-center justify-between ios-fade-in">
           <div className="flex items-center gap-4">
@@ -232,13 +235,10 @@ export default function EditArticle({ params }) {
                     required
                   >
                     <option value="">Sélectionnez une catégorie</option>
-                    <option value="electronique">Électronique</option>
-                    <option value="vetements">Vêtements</option>
-                    <option value="maison">Maison & Jardin</option>
-                    <option value="sports">Sports & Loisirs</option>
-                    <option value="beaute">Beauté & Santé</option>
-                    <option value="livres">Livres & Médias</option>
-                    <option value="alimentation">Alimentation</option>
+                    <option value="hardware">Hardware</option>
+                    <option value="software">Software</option>
+                    <option value="services">Services</option>
+                    <option value="sas">SAS</option>
                     <option value="autre">Autre</option>
                   </select>
                 </div>

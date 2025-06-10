@@ -41,17 +41,17 @@ const Item = ({ item, index, isActive, toggleAccordion }) => {
   const accordion = useRef(null);
 
   return (
-    <div className={`border-b border-white/10 ${isActive ? "ios-glass-light" : ""} rounded-md overflow-hidden group hover:bg-white/5 transition-all duration-300`}>
+    <div className={`border-b border-gray-200 dark:border-white/10 ${isActive ? "ios-glass-light" : ""} rounded-2xl overflow-hidden group hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-300`}>
       <button
         className="flex items-start justify-between w-full py-6 px-6 text-left focus:outline-none"
         onClick={() => toggleAccordion(index)}
         aria-expanded={isActive}
       >
-        <span className="text-lg md:text-xl font-medium text-white">
+        <span className="text-lg md:text-xl font-medium text-gray-900 dark:text-white">
           {item?.question}
         </span>
-        <span className={`flex items-center justify-center w-8 h-8 rounded-full bg-white/10 transform transition-transform duration-300 ${isActive ? "rotate-45" : ""} group-hover:bg-white/20`}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <span className={`flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-white/10 transform transition-transform duration-300 ${isActive ? "rotate-45" : ""} group-hover:bg-gray-300 dark:group-hover:bg-white/20`}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-600 dark:text-white">
             <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </span>
@@ -61,7 +61,7 @@ const Item = ({ item, index, isActive, toggleAccordion }) => {
         ref={accordion}
         className={`transition-all duration-300 ease-in-out overflow-hidden ${isActive ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
       >
-        <div className="p-6 pt-0 text-white/80">
+        <div className="p-6 pt-0 text-gray-700 dark:text-white/80">
           {item?.answer}
         </div>
       </div>
@@ -77,10 +77,10 @@ const FAQ = () => {
   };
 
   return (
-    <section className="ios-bg-dark text-white relative overflow-hidden py-24 md:py-32" id="faq">
+    <section className="bg-gray-50 dark:bg-gray-950 relative overflow-hidden py-24 md:py-32" id="faq">
       {/* Effets de lumière flottants */}
-      <div className="absolute top-40 right-20 w-72 h-72 rounded-full bg-purple-500/20 blur-3xl animate-float"></div>
-      <div className="absolute bottom-20 left-10 w-72 h-72 rounded-full bg-indigo-500/15 blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
+      <div className="absolute top-40 right-20 w-72 h-72 rounded-full bg-purple-500/20 dark:bg-purple-500/20 blur-3xl animate-float"></div>
+      <div className="absolute bottom-20 left-10 w-72 h-72 rounded-full bg-indigo-500/15 dark:bg-indigo-500/15 blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
       
       <div className="ios-container px-6 md:px-10 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -89,13 +89,13 @@ const FAQ = () => {
               <span className="ios-badge-primary mb-6">
                 Questions Fréquentes
               </span>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight text-white">
-                Les réponses à vos <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">questions</span>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight text-gray-900 dark:text-white">
+                Les réponses à vos <span className="bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 bg-clip-text text-transparent">questions</span>
               </h2>
-              <p className="text-lg text-white/80 mb-8">
+              <p className="text-lg text-gray-600 dark:text-white/80 mb-8">
                 Tout ce que vous devez savoir sur notre service de sécurité avancé et comment il peut protéger votre entreprise.
               </p>
-              <a href="/contact" className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors group">
+              <a href="/contact" className="inline-flex items-center gap-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors group">
                 <span>Une autre question?</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="group-hover:translate-x-1 transition-transform">
                   <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

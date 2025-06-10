@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
 import Link from "next/link";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +51,9 @@ export default async function CompaniesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="ios-container space-y-8">
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container space-y-8 relative z-20">
         {/* Header */}
         <div className="text-center space-y-4 ios-fade-in mb-12">
           <h1 className="ios-title text-4xl md:text-5xl">
@@ -79,7 +81,7 @@ export default async function CompaniesPage() {
         {pendingInvitations.length > 0 && (
           <div className="dashboard-card ios-slide-up mb-8" style={{animationDelay: '0.1s'}}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                 <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -95,7 +97,7 @@ export default async function CompaniesPage() {
             <div className="ios-grid-2">
               {pendingInvitations.map((invitation) => (
                 <div key={invitation.id} className="ios-glass-light rounded-2xl p-6 hover:bg-white/20 transition-all group">
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                     {invitation.company.name}
                   </h3>
                   <p className="ios-body mb-4">
@@ -156,7 +158,7 @@ export default async function CompaniesPage() {
         {/* Liste des entreprises */}
         <div className="dashboard-card ios-slide-up" style={{animationDelay: '0.3s'}}>
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -196,7 +198,7 @@ export default async function CompaniesPage() {
                 <div key={company.id} className="ios-glass-light rounded-2xl p-6 hover:bg-white/20 transition-all group">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-purple-300 transition-colors">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                         {company.name}
                       </h3>
                       <p className="ios-body text-sm line-clamp-2 mb-4">

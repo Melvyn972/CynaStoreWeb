@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export default function EditUser({ params }) {
   const router = useRouter();
@@ -79,15 +80,7 @@ export default function EditUser({ params }) {
     }));
   };
 
-  const handleArticleSelection = (articleId) => {
-    setUserPurchases(prev => {
-      if (prev.includes(articleId)) {
-        return prev.filter(id => id !== articleId);
-      } else {
-        return [...prev, articleId];
-      }
-    });
-  };
+  // Fonction supprimée car les achats ne sont plus modifiables
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -117,7 +110,6 @@ export default function EditUser({ params }) {
         formDataToSend.append('password', formData.password);
       }
       formDataToSend.append('role', formData.role);
-      formDataToSend.append('articles', JSON.stringify(userPurchases));
       formDataToSend.append('currentImageUrl', formData.imageUrl);
       
       if (selectedFile) {
@@ -145,12 +137,13 @@ export default function EditUser({ params }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-        <div className="ios-container">
+      <div className="min-h-screen relative overflow-hidden p-6">
+        <BackgroundEffects />
+        <div className="ios-container relative z-20">
           <div className="dashboard-card">
             <div className="flex justify-center items-center py-12">
               <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="ml-4 ios-body text-white">Chargement...</span>
+              <span className="ml-4 ios-body text-gray-900 dark:text-white">Chargement...</span>
             </div>
           </div>
         </div>
@@ -159,8 +152,9 @@ export default function EditUser({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="ios-container space-y-8">
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container space-y-8 relative z-20">
         {/* Header avec boutons de navigation */}
         <div className="flex items-center justify-between ios-fade-in">
           <div className="flex items-center gap-4">
@@ -209,7 +203,7 @@ export default function EditUser({ params }) {
         <form onSubmit={handleSubmit} className="space-y-8 ios-slide-up">
           {/* Section informations de base */}
           <div className="dashboard-card">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-3 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -279,7 +273,7 @@ export default function EditUser({ params }) {
 
             {/* Section photo de profil */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-3">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-3">
                 <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                   <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -333,66 +327,97 @@ export default function EditUser({ params }) {
             </div>
           </div>
 
-          {/* Section achats/articles */}
+          {/* Section commandes/achats */}
           {articles.length > 0 && (
             <div className="dashboard-card">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-3 mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
                 </div>
-                Articles achetés ({userPurchases.length})
+                Commandes passées ({userPurchases.length})
               </h2>
 
-              <div className="ios-grid-3">
-                {articles.map((article) => (
-                  <div
-                    key={article.id}
-                    className={`product-card cursor-pointer transition-all ${
-                      userPurchases.includes(article.id)
-                        ? 'ring-2 ring-emerald-500 bg-emerald-500/10'
-                        : 'hover:ring-2 hover:ring-white/30'
-                    }`}
-                    onClick={() => handleArticleSelection(article.id)}
-                  >
-                    <div className="product-image">
-                      {article.image ? (
-                        <Image
-                          src={article.image}
-                          alt={article.title}
-                          className="w-full h-full object-cover"
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-purple-500 via-purple-400 to-indigo-500 flex items-center justify-center">
-                          <span className="text-white text-xl font-bold">
-                            {article.title.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {userPurchases.includes(article.id) && (
-                        <div className="absolute top-3 right-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="product-content">
-                      <h3 className="product-title text-sm">
-                        {article.title}
-                      </h3>
-                      <div className="product-price text-sm">
-                        {article.price?.toFixed(2)} €
+              {userPurchases.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-10 h-10 text-gray-400 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                  </div>
+                  <p className="ios-body text-gray-500 dark:text-gray-400">
+                    Cet utilisateur n&apos;a passé aucune commande pour le moment.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                       </div>
+                      <p className="text-blue-700 dark:text-blue-300 text-sm font-medium">
+                        Les commandes sont affichées en lecture seule. Vous ne pouvez pas modifier les achats effectués.
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  <div className="ios-grid-3">
+                    {articles
+                      .filter(article => userPurchases.includes(article.id))
+                      .map((article) => (
+                        <div
+                          key={article.id}
+                          className="product-card border-2 border-emerald-500 bg-emerald-500/10 opacity-75 cursor-not-allowed"
+                        >
+                          <div className="product-image">
+                            {article.image ? (
+                              <Image
+                                src={article.image}
+                                alt={article.title}
+                                className="w-full h-full object-cover"
+                                fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-purple-500 via-purple-400 to-indigo-500 flex items-center justify-center">
+                                <span className="text-white text-xl font-bold">
+                                  {article.title.charAt(0)}
+                                </span>
+                              </div>
+                            )}
+                            
+                            <div className="absolute top-3 right-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+
+                            <div className="absolute top-3 left-3 px-2 py-1 bg-emerald-500 text-white text-xs font-medium rounded-full">
+                              Acheté
+                            </div>
+                          </div>
+                          
+                          <div className="product-content">
+                            <h3 className="product-title text-sm">
+                              {article.title}
+                            </h3>
+                            <div className="product-price text-sm">
+                              {article.price?.toFixed(2)} €
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                              Article acheté par cet utilisateur
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </>
+              )}
             </div>
           )}
 

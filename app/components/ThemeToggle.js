@@ -18,7 +18,7 @@ const ThemeToggle = () => {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-5 h-5 text-white relative z-nav"
+          className="w-5 h-5 text-gray-900 dark:text-white relative z-nav"
         >
           <path
             strokeLinecap="round"
@@ -33,7 +33,7 @@ const ThemeToggle = () => {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-5 h-5 text-white relative z-nav"
+          className="w-5 h-5 text-gray-900 dark:text-white relative z-nav"
         >
           <path
             strokeLinecap="round"

@@ -4,7 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { Toaster } from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import { ThemeProvider } from "@/app/context/ThemeContext";
-import { Component } from 'react';
+import { Component, useState, useEffect } from 'react';
 
 // ErrorBoundary native React
 class ErrorBoundary extends Component {
@@ -47,27 +47,69 @@ class ErrorBoundary extends Component {
   }
 }
 
+// Composant pour gérer l'hydratation
+const HydrationProvider = ({ children }) => {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    // Marquer comme hydraté après le premier rendu côté client
+    setIsHydrated(true);
+  }, []);
+
+  return (
+    <>
+      {children}
+      {/* Styles d'urgence pour éviter FOUC pendant l'hydratation */}
+      {!isHydrated && (
+        <style jsx global>{`
+          body {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+          }
+          body.hydrated {
+            opacity: 1;
+          }
+        `}</style>
+      )}
+      {isHydrated && (
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `document.body.classList.add('hydrated');`,
+          }}
+        />
+      )}
+    </>
+  );
+};
+
 const ClientLayout = ({ children }) => {
   return (
     <ErrorBoundary>
-      <SessionProvider>
-        <ThemeProvider>
-          {children}
+      <HydrationProvider>
+        <SessionProvider
+          // Refetch session every 5 minutes
+          refetchInterval={5 * 60}
+          // Re-fetch session if window is focused
+          refetchOnWindowFocus={true}
+        >
+          <ThemeProvider>
+            {children}
 
-          <Toaster
-            toastOptions={{
-              duration: 3000,
-            }}
-            position="top-right"
-          />
+            <Toaster
+              toastOptions={{
+                duration: 3000,
+              }}
+              position="top-right"
+            />
 
-          <Tooltip
-            id="tooltip"
-            className="z-[60] !opacity-100 max-w-sm shadow-lg"
-            place="top"
-          />
-        </ThemeProvider>
-      </SessionProvider>
+            <Tooltip
+              id="tooltip"
+              className="z-[60] !opacity-100 max-w-sm shadow-lg"
+              place="top"
+            />
+          </ThemeProvider>
+        </SessionProvider>
+      </HydrationProvider>
     </ErrorBoundary>
   );
 };

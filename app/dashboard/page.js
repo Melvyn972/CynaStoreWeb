@@ -5,6 +5,7 @@ import prisma from "@/libs/prisma";
 import Link from "next/link";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import Image from "next/image";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export const dynamic = "force-dynamic";
 
@@ -80,13 +81,11 @@ export default async function Dashboard() {
   });
 
   return (
-    <main className="min-h-screen pt-24 pb-20">
-      {/* Background avec effets iOS 16 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-950 to-purple-950/30"></div>
-      <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-purple-500/10 blur-3xl"></div>
-      <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl"></div>
+    <main className="min-h-screen relative overflow-hidden">
+      <BackgroundEffects />
       
-      <div className="relative z-10 ios-container px-6 md:px-10 mx-auto">
+      <div className="relative z-20 pt-24 pb-20">
+        <div className="ios-container px-6 md:px-10 mx-auto">
         {/* Header moderne */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 ios-fade-in">
           <div>
@@ -94,7 +93,7 @@ export default async function Dashboard() {
               Tableau de <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">bord</span>
             </h1>
             <p className="ios-body text-lg">
-              Bienvenue, <span className="text-purple-400 font-semibold">{user.name || user.email.split('@')[0]}</span>
+              Bienvenue, <span className="text-purple-600 dark:text-purple-400 font-semibold">{user.name || user.email.split('@')[0]}</span>
             </p>
           </div>
           
@@ -156,9 +155,9 @@ export default async function Dashboard() {
           </div>
         </div>
 
-        <div className="ios-grid-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* Profil utilisateur moderne */}
-          <div className="dashboard-card ios-slide-up" style={{animationDelay: '0.1s'}}>
+          <div className="lg:col-span-5 dashboard-card ios-slide-up" style={{animationDelay: '0.1s'}}>
             <div className="flex items-center gap-6 mb-8">
               <div className="relative">
                 {user.image ? (
@@ -177,10 +176,10 @@ export default async function Dashboard() {
                 <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-2 border-gray-950"></div>
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-bold text-white mb-2">
+                <h2 className="text-2xl font-bold text-black dark:text-white mb-2">
                   {user.name || "Utilisateur"}
                 </h2>
-                <p className="text-white/60 mb-1">{user.email}</p>
+                <p className="text-black/60 dark:text-white/60 mb-1">{user.email}</p>
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
                   {user.role === "ADMIN" ? "Administrateur" : "Utilisateur"}
                 </span>
@@ -193,9 +192,9 @@ export default async function Dashboard() {
                   <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  <span className="text-white/80">Téléphone</span>
+                  <span className="text-black/80 dark:text-white/80">Téléphone</span>
                 </div>
-                <span className="text-white">{user.phone || "Non défini"}</span>
+                <span className="text-black dark:text-white">{user.phone || "Non défini"}</span>
               </div>
               
               <div className="flex items-center justify-between p-4 ios-glass-light rounded-2xl">
@@ -203,9 +202,9 @@ export default async function Dashboard() {
                   <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6M8 7l-2 9a1 1 0 001 1h8a1 1 0 001-1L14 7M8 7h6m0 0V3" />
                   </svg>
-                  <span className="text-white/80">Membre depuis</span>
+                  <span className="text-black/80 dark:text-white/80">Membre depuis</span>
                 </div>
-                <span className="text-white">
+                <span className="text-black dark:text-white">
                   {new Date(user.createdAt).toLocaleDateString('fr-FR', { 
                     year: 'numeric', 
                     month: 'long' 
@@ -226,11 +225,11 @@ export default async function Dashboard() {
           </div>
 
           {/* Actions rapides */}
-          <div className="space-y-6 ios-slide-up" style={{animationDelay: '0.2s'}}>
+          <div className="lg:col-span-7 space-y-6 ios-slide-up" style={{animationDelay: '0.2s'}}>
             {/* Entreprises */}
             <div className="dashboard-card">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-white flex items-center gap-3">
+                <h3 className="text-xl font-semibold text-black dark:text-white flex items-center gap-3">
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -248,11 +247,11 @@ export default async function Dashboard() {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="text-center p-4 ios-glass-light rounded-2xl">
                   <div className="text-2xl font-bold text-purple-400 mb-1">{ownedCompanies.length}</div>
-                  <div className="text-sm text-white/60">Créées</div>
+                  <div className="text-sm text-black/60 dark:text-white/60">Créées</div>
                 </div>
                 <div className="text-center p-4 ios-glass-light rounded-2xl">
                   <div className="text-2xl font-bold text-indigo-400 mb-1">{memberCompanies.length}</div>
-                  <div className="text-sm text-white/60">Membre</div>
+                  <div className="text-sm text-black/60 dark:text-white/60">Membre</div>
                 </div>
               </div>
               
@@ -269,7 +268,7 @@ export default async function Dashboard() {
 
             {/* Boutique et commandes */}
             <div className="dashboard-card">
-              <h3 className="text-xl font-semibold text-white flex items-center gap-3 mb-6">
+              <h3 className="text-xl font-semibold text-black dark:text-white flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -279,6 +278,16 @@ export default async function Dashboard() {
               </h3>
               
               <div className="space-y-3">
+                <Link 
+                  href="/dashboard/orders" 
+                  className="w-full ios-button-primary justify-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Mes commandes
+                </Link>
+                
                 <Link 
                   href="/articles" 
                   className="w-full ios-button-secondary justify-center"
@@ -302,10 +311,82 @@ export default async function Dashboard() {
               </div>
             </div>
 
+            {/* Conformité RGPD */}
+            <div className="dashboard-card">
+              <h3 className="text-xl font-semibold text-black dark:text-white flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                Confidentialité & RGPD
+              </h3>
+              
+              <div className="grid grid-cols-1 gap-4 mb-6">
+                <div className="p-4 ios-glass-light rounded-2xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                      </svg>
+                      <span className="text-sm text-black/80 dark:text-white/80">Marketing</span>
+                    </div>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      user.consentMarketing 
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                    }`}>
+                      {user.consentMarketing ? 'Accepté' : 'Refusé'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="p-4 ios-glass-light rounded-2xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      <span className="text-sm text-black/80 dark:text-white/80">Analyses</span>
+                    </div>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      user.consentAnalytics 
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                    }`}>
+                      {user.consentAnalytics ? 'Accepté' : 'Refusé'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <Link 
+                  href="/dashboard/rgpd" 
+                  className="w-full ios-button-primary justify-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Gérer mes consentements
+                </Link>
+                
+                <Link 
+                  href="/dashboard/data-export" 
+                  className="w-full ios-button-secondary justify-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Exporter mes données
+                </Link>
+              </div>
+            </div>
+
             {/* Admin Panel */}
             {user.role === "ADMIN" && (
               <div className="dashboard-card">
-                <h3 className="text-xl font-semibold text-white flex items-center gap-3 mb-6">
+                <h3 className="text-xl font-semibold text-black dark:text-white flex items-center gap-3 mb-6">
                   <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -390,6 +471,7 @@ export default async function Dashboard() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </main>
   );

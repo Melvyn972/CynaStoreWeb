@@ -8,6 +8,7 @@ import prisma from "@/libs/prisma";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AddToCartButton from "@/components/AddToCartButton";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 // Génération des métadonnées dynamiques pour chaque article
 export async function generateMetadata({ params }) {
@@ -57,24 +58,25 @@ export default async function ArticleDetail({ params }) {
         <Header />
       </Suspense>
       
-      <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pt-24 pb-20">
-        <div className="ios-container space-y-8">
+      <main className="min-h-screen relative overflow-hidden pt-24 pb-20">
+        <BackgroundEffects />
+        <div className="ios-container space-y-8 relative z-20">
           {/* Breadcrumb moderne */}
           <div className="ios-fade-in">
             <nav className="flex items-center gap-2 text-sm mb-4">
-              <Link href="/" className="text-white/60 hover:text-white transition-colors">
+              <Link href="/" className="text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white transition-colors">
                 Accueil
               </Link>
-              <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-black/40 dark:text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              <Link href="/articles" className="text-white/60 hover:text-white transition-colors">
+              <Link href="/articles" className="text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white transition-colors">
                 Boutique
               </Link>
-              <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-black/40 dark:text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              <span className="text-white font-medium">{article.title}</span>
+              <span className="text-black dark:text-white font-medium">{article.title}</span>
             </nav>
           </div>
           
@@ -112,7 +114,7 @@ export default async function ArticleDetail({ params }) {
               <div className="space-y-6">
                 {/* Titre et évaluation */}
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  <h1 className="text-3xl md:text-4xl font-bold text-black dark:text-white mb-4">
                     {article.title}
                   </h1>
                   
@@ -129,7 +131,7 @@ export default async function ArticleDetail({ params }) {
                         </svg>
                       ))}
                     </div>
-                    <span className="text-white/60 text-sm">
+                    <span className="text-black/60 dark:text-white/60 text-sm">
                       4.9/5 · 12 avis
                     </span>
                   </div>
@@ -137,7 +139,7 @@ export default async function ArticleDetail({ params }) {
                 
                 {/* Description */}
                 <div className="ios-glass-light rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-black dark:text-white mb-3 flex items-center gap-2">
                     <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>

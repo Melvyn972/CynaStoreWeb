@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export default function NewArticle() {
   const router = useRouter();
@@ -80,8 +81,9 @@ export default function NewArticle() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="ios-container space-y-8">
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container space-y-8 relative z-20">
         {/* Header avec boutons de navigation */}
         <div className="flex items-center justify-between ios-fade-in">
           <div className="flex items-center gap-4">
@@ -182,13 +184,10 @@ export default function NewArticle() {
                     required
                   >
                     <option value="">Sélectionnez une catégorie</option>
-                    <option value="electronique">Électronique</option>
-                    <option value="vetements">Vêtements</option>
-                    <option value="maison">Maison & Jardin</option>
-                    <option value="sports">Sports & Loisirs</option>
-                    <option value="beaute">Beauté & Santé</option>
-                    <option value="livres">Livres & Médias</option>
-                    <option value="alimentation">Alimentation</option>
+                    <option value="hardware">Hardware</option>
+                    <option value="software">Software</option>
+                    <option value="services">Services</option>
+                    <option value="sas">SAS</option>
                     <option value="autre">Autre</option>
                   </select>
                 </div>

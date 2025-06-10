@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 const ArticlesClient = ({ articles: initialArticles }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,8 +46,9 @@ const ArticlesClient = ({ articles: initialArticles }) => {
   }, [initialArticles, searchTerm, selectedCategory, priceRange, sortBy]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pt-24 pb-20">
-      <div className="ios-container px-6 md:px-10 mx-auto">
+    <div className="min-h-screen relative overflow-hidden pt-24 pb-20">
+      <BackgroundEffects />
+      <div className="ios-container px-6 md:px-10 mx-auto relative z-20">
         {/* Header de la boutique */}
         <div className="text-center mb-16 ios-fade-in">
           <h1 className="ios-title mb-6">
@@ -65,7 +67,7 @@ const ArticlesClient = ({ articles: initialArticles }) => {
               
               {/* Recherche */}
               <div className="filter-group">
-                <label className="block text-sm font-medium text-white/80 mb-2">
+                <label className="block text-sm font-medium text-black/80 dark:text-white/80 mb-2">
                   Rechercher
                 </label>
                 <div className="relative">
@@ -84,7 +86,7 @@ const ArticlesClient = ({ articles: initialArticles }) => {
 
               {/* Catégories */}
               <div className="filter-group">
-                <h3 className="text-sm font-medium text-white/80 mb-3">Catégories</h3>
+                <h3 className="text-sm font-medium text-black/80 dark:text-white/80 mb-3">Catégories</h3>
                 <div className="space-y-2">
                   {categories.map((category) => (
                     <button
@@ -109,7 +111,7 @@ const ArticlesClient = ({ articles: initialArticles }) => {
 
               {/* Fourchette de prix */}
               <div className="filter-group">
-                <h3 className="text-sm font-medium text-white/80 mb-3">Prix</h3>
+                <h3 className="text-sm font-medium text-black/80 dark:text-white/80 mb-3">Prix</h3>
                 <div className="space-y-4">
                   <input
                     type="range"
@@ -123,7 +125,7 @@ const ArticlesClient = ({ articles: initialArticles }) => {
                       background: `linear-gradient(to right, #8B5CF6 0%, #8B5CF6 ${(priceRange[1] / 1000) * 100}%, #374151 ${(priceRange[1] / 1000) * 100}%, #374151 100%)`
                     }}
                   />
-                  <div className="flex justify-between text-sm text-white/60">
+                  <div className="flex justify-between text-sm text-black/60 dark:text-white/60">
                     <span>0 €</span>
                     <span>{priceRange[1]} €</span>
                   </div>
@@ -132,7 +134,7 @@ const ArticlesClient = ({ articles: initialArticles }) => {
 
               {/* Tri */}
               <div className="filter-group">
-                <h3 className="text-sm font-medium text-white/80 mb-3">Trier par</h3>
+                <h3 className="text-sm font-medium text-black/80 dark:text-white/80 mb-3">Trier par</h3>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
@@ -167,11 +169,11 @@ const ArticlesClient = ({ articles: initialArticles }) => {
             {/* Header de résultats */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
               <div className="ios-slide-up">
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <h3 className="text-xl font-semibold text-black dark:text-white mb-2">
                   {filteredArticles.length} produit{filteredArticles.length > 1 ? 's' : ''} trouvé{filteredArticles.length > 1 ? 's' : ''}
                 </h3>
                 {searchTerm && (
-                  <p className="text-white/60">
+                  <p className="text-black/60 dark:text-white/60">
                     Résultats pour &quot;{searchTerm}&quot;
                   </p>
                 )}

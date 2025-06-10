@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
 
@@ -132,8 +133,9 @@ export default function DataExportPage() {
   };
 
   return (
-    <main className="min-h-screen p-4 md:p-8 pb-24 bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <section className="max-w-3xl mx-auto">
+    <main className="min-h-screen relative overflow-hidden p-4 md:p-8 pb-24">
+      <BackgroundEffects />
+      <section className="max-w-3xl mx-auto relative z-20">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 dark:text-white">Exporter mes données</h1>
           <Link 

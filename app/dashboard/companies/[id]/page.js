@@ -8,6 +8,7 @@ import ThemeToggle from "@/app/components/ThemeToggle";
 import CompanyMembers from "@/app/dashboard/companies/components/CompanyMembers";
 import CompanyPurchases from "@/app/dashboard/companies/components/CompanyPurchases";
 import CompanyActions from "@/app/dashboard/companies/components/CompanyActions";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export const dynamic = "force-dynamic";
 
@@ -82,8 +83,9 @@ export default async function CompanyDetailsPage({ params }) {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="ios-container space-y-8">
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container space-y-8 relative z-20">
         {/* Header avec navigation */}
         <div className="flex items-center justify-between ios-fade-in">
           <div className="flex items-center gap-4">
@@ -131,7 +133,7 @@ export default async function CompanyDetailsPage({ params }) {
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">Informations de l&apos;entreprise</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Informations de l&apos;entreprise</h2>
                 <p className="ios-body">Détails et coordonnées</p>
               </div>
             </div>
@@ -140,7 +142,7 @@ export default async function CompanyDetailsPage({ params }) {
               {/* Description */}
               {company.description && (
                 <div className="ios-glass-light rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                     <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -152,7 +154,7 @@ export default async function CompanyDetailsPage({ params }) {
 
               {/* Coordonnées */}
               <div className="ios-glass-light rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
@@ -161,28 +163,28 @@ export default async function CompanyDetailsPage({ params }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {company.email && (
                     <div>
-                      <p className="text-white/60 text-sm">Email</p>
-                      <p className="text-white">{company.email}</p>
+                      <p className="text-gray-600 dark:text-white/60 text-sm">Email</p>
+                      <p className="text-gray-900 dark:text-white">{company.email}</p>
                     </div>
                   )}
                   {company.phone && (
                     <div>
-                      <p className="text-white/60 text-sm">Téléphone</p>
-                      <p className="text-white">{company.phone}</p>
+                      <p className="text-gray-600 dark:text-white/60 text-sm">Téléphone</p>
+                      <p className="text-gray-900 dark:text-white">{company.phone}</p>
                     </div>
                   )}
                   {company.website && (
                     <div>
-                      <p className="text-white/60 text-sm">Site web</p>
-                      <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors">
+                      <p className="text-gray-600 dark:text-white/60 text-sm">Site web</p>
+                      <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
                         {company.website}
                       </a>
                     </div>
                   )}
                   {company.address && (
                     <div className="md:col-span-2">
-                      <p className="text-white/60 text-sm">Adresse</p>
-                      <p className="text-white">{company.address}</p>
+                      <p className="text-gray-600 dark:text-white/60 text-sm">Adresse</p>
+                      <p className="text-gray-900 dark:text-white">{company.address}</p>
                     </div>
                   )}
                 </div>
@@ -191,7 +193,7 @@ export default async function CompanyDetailsPage({ params }) {
               {/* Informations légales */}
               {(company.vatNumber || company.siretNumber) && (
                 <div className="ios-glass-light rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -200,14 +202,14 @@ export default async function CompanyDetailsPage({ params }) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {company.vatNumber && (
                       <div>
-                        <p className="text-white/60 text-sm">Numéro TVA</p>
-                        <p className="text-white font-mono">{company.vatNumber}</p>
+                        <p className="text-gray-600 dark:text-white/60 text-sm">Numéro TVA</p>
+                        <p className="text-gray-900 dark:text-white font-mono">{company.vatNumber}</p>
                       </div>
                     )}
                     {company.siretNumber && (
                       <div>
-                        <p className="text-white/60 text-sm">SIRET</p>
-                        <p className="text-white font-mono">{company.siretNumber}</p>
+                        <p className="text-gray-600 dark:text-white/60 text-sm">SIRET</p>
+                        <p className="text-gray-900 dark:text-white font-mono">{company.siretNumber}</p>
                       </div>
                     )}
                   </div>

@@ -3,6 +3,7 @@ import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
 import Link from "next/link";
 import Image from "next/image";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,11 @@ export default async function AdminDashboard() {
   // Obtenir les statistiques de base du système
   const totalUsers = await prisma.user.count();
   const totalArticles = await prisma.articles.count();
+  
+  // Obtenir le nombre spécifique d'administrateurs
+  const totalAdmins = await prisma.user.count({
+    where: { role: 'ADMIN' }
+  });
   
   // Obtenir tous les articles
   const articles = await prisma.articles.findMany({
@@ -38,8 +44,9 @@ export default async function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="ios-container space-y-8">
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container space-y-8 relative z-20">
         {/* Header Admin avec bouton retour */}
         <div className="flex items-center justify-between ios-fade-in mb-12">
           <div className="text-center flex-1">
@@ -63,7 +70,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Statistiques principales */}
-        <div className="ios-grid-4 ios-slide-up mb-12">
+        <div className="ios-grid-3 ios-slide-up mb-12">
           {/* Total Utilisateurs */}
           <div className="dashboard-card text-center">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -100,40 +107,31 @@ export default async function AdminDashboard() {
             </Link>
           </div>
 
-          {/* Statistiques par rôle */}
-          {userStats.map((stat) => (
-            <div key={stat.role} className="dashboard-card text-center">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
-                stat.role === 'ADMIN' 
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500' 
-                  : 'bg-gradient-to-r from-amber-500 to-orange-500'
-              }`}>
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div className="dashboard-stat-value text-4xl mb-2">{stat.count}</div>
-              <div className="dashboard-stat-label mb-4">
-                {stat.role === 'ADMIN' ? 'Administrateurs' : 'Membres'}
-              </div>
-              <Link 
-                href={`/dashboard/admin/users?role=${stat.role}`} 
-                className="ios-button-secondary w-full"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 616 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                Voir les {stat.role === 'ADMIN' ? 'admins' : 'membres'}
-              </Link>
+          {/* Administrateurs */}
+          <div className="dashboard-card text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
             </div>
-          ))}
+            <div className="dashboard-stat-value text-4xl mb-2">
+              {totalAdmins}
+            </div>
+            <div className="dashboard-stat-label mb-4">Administrateurs</div>
+            <Link href="/dashboard/admin/users?role=ADMIN" className="ios-button-secondary w-full">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 616 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Voir les admins
+            </Link>
+          </div>
         </div>
 
-        {/* Actions rapides - SEULEMENT 2 cartes */}
-        <div className="ios-grid-2 ios-slide-up mb-12" style={{animationDelay: '0.1s'}}>
+        {/* Actions rapides - 3 cartes */}
+        <div className="ios-grid-3 ios-slide-up mb-12" style={{animationDelay: '0.1s'}}>
           <div className="dashboard-card">
-            <h3 className="text-xl font-semibold text-white flex items-center gap-3 mb-4">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -161,7 +159,7 @@ export default async function AdminDashboard() {
           </div>
 
           <div className="dashboard-card">
-            <h3 className="text-xl font-semibold text-white flex items-center gap-3 mb-4">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
@@ -187,12 +185,40 @@ export default async function AdminDashboard() {
               </Link>
             </div>
           </div>
+
+          <div className="dashboard-card">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              Gestion des commandes
+            </h3>
+            <p className="ios-body mb-6">
+              Analysez les commandes, revenus et statistiques de vente.
+            </p>
+            <div className="space-y-3">
+              <Link href="/dashboard/admin/orders" className="ios-button-secondary w-full">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Toutes les commandes
+              </Link>
+              <Link href="/dashboard/admin/orders" className="ios-button-primary w-full">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Voir les statistiques
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Utilisateurs récents */}
         <div className="dashboard-card ios-slide-up" style={{animationDelay: '0.2s'}}>
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -210,17 +236,17 @@ export default async function AdminDashboard() {
           
           {users.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-20 h-20 bg-gray-700 dark:bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-gray-400 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </div>
-              <p className="ios-body">Aucun utilisateur trouvé</p>
+              <p className="ios-body text-gray-900 dark:text-white">Aucun utilisateur trouvé</p>
             </div>
           ) : (
             <div className="space-y-4">
               {users.map((user) => (
-                <div key={user.id} className="ios-glass-light rounded-2xl p-6 hover:bg-white/20 transition-all group">
+                <div key={user.id} className="ios-glass-light rounded-2xl p-6 hover:bg-white/20 dark:hover:bg-white/10 transition-all group">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="relative w-12 h-12 rounded-full overflow-hidden">
@@ -242,13 +268,13 @@ export default async function AdminDashboard() {
                       </div>
                       
                       <div className="space-y-1">
-                        <h3 className="text-white font-semibold">
+                        <h3 className="text-gray-900 dark:text-white font-semibold">
                           {user.name || user.email}
                         </h3>
-                        <p className="text-white/60 text-sm">
+                        <p className="text-gray-600 dark:text-white/60 text-sm">
                           {user.email}
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-white/50">
+                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-white/50">
                           <span>Inscrit le {new Date(user.createdAt).toLocaleDateString('fr-FR')}</span>
                           <span>{user._count.purchases} achats</span>
                         </div>
@@ -258,8 +284,8 @@ export default async function AdminDashboard() {
                     <div className="flex items-center gap-3">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         user.role === 'ADMIN' 
-                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
-                          : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                          ? 'bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30' 
+                          : 'bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/30'
                       }`}>
                         {user.role === 'ADMIN' ? 'Admin' : 'Membre'}
                       </span>
@@ -293,7 +319,7 @@ export default async function AdminDashboard() {
         {/* Articles récents */}
         {articles.length > 0 && (
           <div className="dashboard-card ios-slide-up" style={{animationDelay: '0.3s'}}>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-8">
               <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />

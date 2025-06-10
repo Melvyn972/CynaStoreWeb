@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export default function NewUser() {
   const router = useRouter();
@@ -17,27 +18,8 @@ export default function NewUser() {
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
-  const [articles, setArticles] = useState([]);
-  const [selectedArticles, setSelectedArticles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    // Récupérer les articles disponibles
-    async function fetchArticles() {
-      try {
-        const response = await fetch('/api/admin/articles');
-        if (response.ok) {
-          const data = await response.json();
-          setArticles(data);
-        }
-      } catch (err) {
-        console.error("Erreur lors de la récupération des articles:", err);
-      }
-    }
-    
-    fetchArticles();
-  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,16 +27,6 @@ export default function NewUser() {
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleArticleSelection = (articleId) => {
-    setSelectedArticles(prev => {
-      if (prev.includes(articleId)) {
-        return prev.filter(id => id !== articleId);
-      } else {
-        return [...prev, articleId];
-      }
-    });
   };
 
   const handleFileChange = (e) => {
@@ -84,9 +56,6 @@ export default function NewUser() {
       formDataToSend.append('password', formData.password);
       formDataToSend.append('role', formData.role);
       
-      // Ajouter les articles sélectionnés
-      formDataToSend.append('articles', JSON.stringify(selectedArticles));
-      
       if (selectedFile) {
         formDataToSend.append('avatar', selectedFile);
       }
@@ -101,7 +70,7 @@ export default function NewUser() {
         throw new Error(errorData.message || 'Échec de la création de l\'utilisateur');
       }
 
-      router.push('/dashboard/admin');
+      router.push('/dashboard/admin/users');
       router.refresh();
     } catch (err) {
       setError(err.message);
@@ -111,8 +80,9 @@ export default function NewUser() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="ios-container max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container max-w-4xl mx-auto space-y-8 relative z-20">
         {/* Header */}
         <div className="flex items-center justify-between ios-fade-in">
           <div>
@@ -150,7 +120,7 @@ export default function NewUser() {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Informations de base */}
           <div className="dashboard-card ios-slide-up">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -161,7 +131,7 @@ export default function NewUser() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-white mb-3" htmlFor="name">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3" htmlFor="name">
                   Nom complet
                 </label>
                 <input
@@ -176,7 +146,7 @@ export default function NewUser() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-3" htmlFor="email">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3" htmlFor="email">
                   Adresse email *
                 </label>
                 <input
@@ -192,7 +162,7 @@ export default function NewUser() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-3" htmlFor="password">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3" htmlFor="password">
                   Mot de passe
                 </label>
                 <input
@@ -204,13 +174,13 @@ export default function NewUser() {
                   className="ios-input w-full"
                   placeholder="Mot de passe (optionnel)"
                 />
-                <p className="text-xs text-white/60 mt-2">
+                <p className="text-xs text-gray-600 dark:text-white/60 mt-2">
                   Laissez vide pour les utilisateurs s&apos;authentifiant via des fournisseurs OAuth.
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-3" htmlFor="role">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3" htmlFor="role">
                   Rôle
                 </label>
                 <select
@@ -229,7 +199,7 @@ export default function NewUser() {
 
           {/* Photo de profil */}
           <div className="dashboard-card ios-slide-up" style={{animationDelay: '0.1s'}}>
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -239,7 +209,7 @@ export default function NewUser() {
             </h2>
             
             <div className="flex items-center gap-6">
-              <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-700">
+              <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-700 dark:bg-gray-600">
                 {imagePreview ? (
                   <Image
                     src={imagePreview}
@@ -274,77 +244,12 @@ export default function NewUser() {
                   </svg>
                   Choisir une image
                 </button>
-                <p className="text-xs text-white/60 mt-2">
+                <p className="text-xs text-gray-600 dark:text-white/60 mt-2">
                   Formats acceptés: JPG, PNG, GIF (max 5MB)
                 </p>
               </div>
             </div>
           </div>
-
-          {/* Articles associés */}
-          {articles.length > 0 && (
-            <div className="dashboard-card ios-slide-up" style={{animationDelay: '0.2s'}}>
-              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                  </svg>
-                </div>
-                Articles associés
-              </h2>
-              
-              <div className="ios-grid-3">
-                {articles.map(article => (
-                  <div 
-                    key={article.id}
-                    className={`ios-glass-light rounded-xl p-4 cursor-pointer transition-all hover:bg-white/20 ${
-                      selectedArticles.includes(article.id) ? 'ring-2 ring-purple-500 bg-purple-500/20' : ''
-                    }`}
-                    onClick={() => handleArticleSelection(article.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-                        {article.image ? (
-                          <Image
-                            src={article.image}
-                            alt={article.title}
-                            className="w-full h-full object-cover"
-                            width={48}
-                            height={48}
-                          />
-                        ) : (
-                          <span className="text-white font-bold">
-                            {article.title.charAt(0)}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <h3 className="text-white font-medium text-sm line-clamp-1">
-                          {article.title}
-                        </h3>
-                        <p className="text-purple-300 text-xs">
-                          {article.price}€
-                        </p>
-                      </div>
-                      
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        selectedArticles.includes(article.id) 
-                          ? 'border-purple-500 bg-purple-500' 
-                          : 'border-white/30'
-                      }`}>
-                        {selectedArticles.includes(article.id) && (
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Boutons d'action */}
           <div className="flex items-center gap-4 justify-end ios-slide-up" style={{animationDelay: '0.3s'}}>

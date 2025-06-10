@@ -13,15 +13,15 @@ body {
 /* Styles de base iOS 16 */
 @layer base {
   .ios-glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+    @apply bg-white/5 dark:bg-white/5 backdrop-blur-xl border border-white/10 dark:border-white/10 rounded-3xl;
   }
   
   .ios-glass-light {
-    @apply bg-white/10 backdrop-blur-2xl border border-white/20;
+    @apply bg-gray-100/80 dark:bg-white/10 backdrop-blur-2xl border border-gray-400/50 dark:border-white/20 rounded-3xl;
   }
   
   .ios-card {
-    @apply bg-gray-950/80 backdrop-blur-xl border border-purple-500/20 rounded-3xl overflow-hidden;
+    @apply bg-white/95 dark:bg-gray-950/80 backdrop-blur-xl border border-gray-300 dark:border-purple-500/20 rounded-3xl overflow-hidden shadow-lg;
   }
   
   .ios-button {
@@ -39,11 +39,15 @@ body {
   }
   
   .ios-button-secondary {
-    @apply ios-button ios-glass-light text-white/90 hover:bg-white/20 hover:text-white;
+    @apply ios-button bg-gray-300/80 dark:bg-white/10 backdrop-blur-2xl border border-gray-500 dark:border-white/20 text-gray-900 dark:text-white/90 hover:bg-gray-400/80 dark:hover:bg-white/20 hover:text-gray-900 dark:hover:text-white rounded-3xl;
   }
   
   .ios-input {
-    @apply w-full px-4 py-3.5 bg-gray-950/50 border border-purple-500/20 rounded-2xl text-white placeholder:text-gray-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all;
+    @apply w-full px-4 py-3.5 bg-white/50 dark:bg-gray-950/50 border border-purple-400/30 dark:border-purple-500/20 rounded-2xl text-black dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all;
+  }
+  
+  .ios-badge-primary {
+    @apply inline-block px-4 py-2 bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border border-purple-500/30 rounded-full text-sm font-medium text-purple-300 backdrop-blur-xl;
   }
   
   .btn-gradient {
@@ -89,15 +93,19 @@ body {
 @layer components {
   /* Typographie iOS 16 */
   .ios-title {
-    @apply text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-purple-200 bg-clip-text text-transparent;
+    @apply text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-black via-purple-700 to-purple-900 dark:from-white dark:via-purple-100 dark:to-purple-200 bg-clip-text text-transparent;
   }
   
   .ios-subtitle {
-    @apply text-xl md:text-2xl font-semibold text-white/90;
+    @apply text-xl md:text-2xl font-semibold text-black/90 dark:text-white/90;
   }
   
   .ios-body {
-    @apply text-base text-white/70 leading-relaxed;
+    @apply text-base text-black/70 dark:text-white/70 leading-relaxed;
+  }
+  
+  .ios-label {
+    @apply block text-sm font-medium text-black/80 dark:text-white/80 mb-2;
   }
   
   /* Cartes et conteneurs iOS 16 */
@@ -168,7 +176,7 @@ body {
   }
   
   .ios-nav-scrolled {
-    @apply bg-black/80 backdrop-blur-2xl border-b border-purple-500/20;
+    @apply bg-white/95 dark:bg-black/80 backdrop-blur-2xl border-b border-gray-300/30 dark:border-purple-500/20;
   }
   
   /* Hiérarchie des z-index */
@@ -198,7 +206,7 @@ body {
   }
   
   .product-title {
-    @apply text-xl font-semibold text-white group-hover:text-purple-300 transition-colors;
+    @apply text-xl font-semibold text-black dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors;
   }
   
   .product-price {
@@ -215,11 +223,11 @@ body {
   }
   
   .filter-title {
-    @apply text-lg font-semibold text-white mb-4;
+    @apply text-lg font-semibold text-black dark:text-white mb-4;
   }
   
   .filter-item {
-    @apply flex items-center space-x-3 text-white/80 hover:text-white transition-colors cursor-pointer;
+    @apply flex items-center space-x-3 text-black/80 dark:text-white/80 hover:text-black dark:hover:text-white transition-colors cursor-pointer;
   }
   
   /* Dashboard utilisateur */
@@ -236,7 +244,7 @@ body {
   }
   
   .dashboard-stat-label {
-    @apply text-sm text-white/60 uppercase tracking-wide font-medium;
+    @apply text-sm text-black/60 dark:text-white/60 uppercase tracking-wide font-medium;
   }
   
   /* Panier */

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
 import Footer from "@/components/Footer";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export const metadata = getSEOTags({
   title: `Politique de Confidentialité | ${config.appName}`,
@@ -12,14 +13,10 @@ export const metadata = getSEOTags({
 export default function PrivacyPolicy() {
   return (
     <>
-      <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950">
-        {/* Décorations */}
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full
-                        bg-purple-500/10 dark:bg-purple-400/5 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full
-                        bg-blue-500/10 dark:bg-blue-400/5 blur-3xl" />
+      <main className="min-h-screen relative overflow-hidden">
+        <BackgroundEffects />
 
-        <div className="relative z-10 ios-container py-24 px-6">
+        <div className="relative z-20 ios-container py-24 px-6">
           {/* Bouton retour */}
           <div className="mb-12">
             <Link
