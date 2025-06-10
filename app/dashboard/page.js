@@ -4,6 +4,7 @@ import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
 import Link from "next/link";
 import ThemeToggle from "@/app/components/ThemeToggle";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,13 @@ export default async function Dashboard() {
   }, {});
 
   const articlesArray = Object.values(groupedPurchases);
+  
+  // Calculate statistics
+  const totalSpent = purchases.reduce((sum, purchase) => {
+    return sum + (purchase.article?.price || 0) * purchase.quantity;
+  }, 0);
+  
+  const totalItems = purchases.reduce((sum, purchase) => sum + purchase.quantity, 0);
 
   // Get company information
   const ownedCompanies = await prisma.company.findMany({
@@ -72,16 +80,30 @@ export default async function Dashboard() {
   });
 
   return (
-    <main className="min-h-screen p-4 md:p-8 pb-24 bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <section className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 dark:text-white">Tableau de bord</h1>
-          <div className="flex items-center gap-3">
+    <main className="min-h-screen pt-24 pb-20">
+      {/* Background avec effets iOS 16 */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-950 to-purple-950/30"></div>
+      <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-purple-500/10 blur-3xl"></div>
+      <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl"></div>
+      
+      <div className="relative z-10 ios-container px-6 md:px-10 mx-auto">
+        {/* Header moderne */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 ios-fade-in">
+          <div>
+            <h1 className="ios-title mb-4">
+              Tableau de <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">bord</span>
+            </h1>
+            <p className="ios-body text-lg">
+              Bienvenue, <span className="text-purple-400 font-semibold">{user.name || user.email.split('@')[0]}</span>
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-4 mt-6 md:mt-0">
             <Link 
               href="/" 
-              className="btn btn-outline btn-primary normal-case"
+              className="ios-button-secondary flex items-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
               Accueil
@@ -91,259 +113,284 @@ export default async function Dashboard() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Informations personnelles */}
-          <div className="card bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden transition-all duration-200 hover:shadow-xl">
-            <div className="card-body p-6">
-              <h2 className="card-title text-xl font-bold text-gray-800 dark:text-white mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Informations personnelles
-              </h2>
-              <div className="space-y-3">
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
-                  <span className="font-medium text-gray-600 dark:text-gray-400 w-24">Nom:</span> 
-                  <span className="text-gray-800 dark:text-white">{user.name || "Non défini"}</span>
-                </div>
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
-                  <span className="font-medium text-gray-600 dark:text-gray-400 w-24">Email:</span> 
-                  <span className="text-gray-800 dark:text-white">{user.email}</span>
-                </div>
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
-                  <span className="font-medium text-gray-600 dark:text-gray-400 w-24">Téléphone:</span> 
-                  <span className="text-gray-800 dark:text-white">{user.phone || "Non défini"}</span>
-                </div>
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
-                  <span className="font-medium text-gray-600 dark:text-gray-400 w-24">Rôle:</span> 
-                  <span className="text-gray-800 dark:text-white">{user.role}</span>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <Link 
-                  href="/dashboard/profile" 
-                  className="btn btn-primary text-white normal-case"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  Modifier mon profil
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Mes entreprises */}
-          <div className="card bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden transition-all duration-200 hover:shadow-xl">
-            <div className="card-body p-6">
-              <h2 className="card-title text-xl font-bold text-gray-800 dark:text-white mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Mes entreprises
-                {pendingInvitations.length > 0 && (
-                  <span className="badge badge-secondary ml-2">{pendingInvitations.length} invitation{pendingInvitations.length > 1 ? 's' : ''}</span>
-                )}
-              </h2>
-              
-              <div className="space-y-3">
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
-                  <span className="font-medium text-gray-600 dark:text-gray-400 w-40">Entreprises:</span> 
-                  <span className="text-gray-800 dark:text-white">{totalCompanies}</span>
-                </div>
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
-                  <span className="font-medium text-gray-600 dark:text-gray-400 w-40">Entreprises créées:</span> 
-                  <span className="text-gray-800 dark:text-white">{ownedCompanies.length}</span>
-                </div>
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
-                  <span className="font-medium text-gray-600 dark:text-gray-400 w-40">Membres d'entreprise:</span> 
-                  <span className="text-gray-800 dark:text-white">{memberCompanies.length}</span>
-                </div>
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
-                  <span className="font-medium text-gray-600 dark:text-gray-400 w-40">Invitations en attente:</span> 
-                  <span className="text-gray-800 dark:text-white">{pendingInvitations.length}</span>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <Link 
-                  href="/dashboard/companies" 
-                  className="btn btn-primary text-white normal-case"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  Gérer mes entreprises
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Admin Panel */}
-          {user.role === "ADMIN" && (
-            <div className="card bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden transition-all duration-200 hover:shadow-xl">
-              <div className="card-body p-6">
-                <h2 className="card-title text-xl font-bold text-gray-800 dark:text-white mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-                  </svg>
-                  Administration
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">Accédez au panneau d&apos;administration pour gérer les utilisateurs et les paramètres du site.</p>
-                <Link 
-                  href="/dashboard/admin" 
-                  className="btn btn-secondary text-white normal-case"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Panneau d&apos;administration
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div id="articles">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mt-8 mb-4">
-            Mes articles achetés
-          </h2>
-          {purchases.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 text-center">
-              <p className="text-gray-600 dark:text-gray-400">Vous n&apos;avez pas encore acheté d&apos;articles.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {articlesArray.map((item) => (
-                <div key={item.article.id} className="card bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden transition-all duration-200 hover:shadow-xl">
-                  <div className="card-body p-6">
-                    <div className="flex justify-between">
-                      <h3 className="card-title text-lg font-bold text-gray-800 dark:text-white mb-2">{item.article.title}</h3>
-                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">
-                        Quantité: {item.totalQuantity}
-                      </span>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">{item.article.description}</p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Prix unitaire: {item.article.price} €
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Dernier achat: {new Date(item.latestPurchaseDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {item.purchases.length > 1 && (
-                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        <p>Acheté {item.purchases.length} fois</p>
-                      </div>
-                    )}
-                    <div className="mt-4">
-                      <Link href={`/articles/${item.article.id}`} className="btn btn-primary text-white normal-case">  
-                        Voir l&apos;article
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        
-        {/* RGPD et paramètres */}
-        <div className="card mt-8 bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden transition-all duration-200">
-          <div className="card-body p-6">
-            <h2 className="card-title text-xl font-bold text-gray-800 dark:text-white mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        {/* Statistiques rapides */}
+        <div className="ios-grid-4 mb-12 ios-slide-up">
+          <div className="dashboard-card text-center group hover:scale-105 transition-all duration-300">
+            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              Paramètres RGPD et confidentialité
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link 
-                href="/dashboard/rgpd" 
-                className="flex items-center p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <div>
-                  <h3 className="font-medium">Gérer mes consentements</h3>
-                  <p className="text-sm text-blue-600 dark:text-blue-200">Contrôlez vos préférences de confidentialité</p>
-                </div>
-              </Link>
-              
-              <Link 
-                href="/dashboard/rgpd?tab=historique" 
-                className="flex items-center p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <h3 className="font-medium">Historique des consentements</h3>
-                  <p className="text-sm text-purple-600 dark:text-purple-200">Consultez l&apos;historique de vos choix</p>
-                </div>
-              </Link>
-              
-              <Link 
-                href="/dashboard/rgpd?tab=conservation" 
-                className="flex items-center p-4 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <div>
-                  <h3 className="font-medium">Conservation des données</h3>
-                  <p className="text-sm text-teal-600 dark:text-teal-200">Durée de conservation de vos données</p>
-                </div>
-              </Link>
-              
-              <Link 
-                href="/dashboard/data-export" 
-                className="flex items-center p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                <div>
-                  <h3 className="font-medium">Exporter mes données</h3>
-                  <p className="text-sm text-amber-600 dark:text-amber-200">Téléchargez vos données personnelles</p>
-                </div>
-              </Link>
+            </div>
+            <div className="dashboard-stat-value">{totalItems}</div>
+            <div className="dashboard-stat-label">Articles achetés</div>
+          </div>
+          
+          <div className="dashboard-card text-center group hover:scale-105 transition-all duration-300">
+            <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+            </div>
+            <div className="dashboard-stat-value">{totalSpent.toFixed(2)} €</div>
+            <div className="dashboard-stat-label">Total dépensé</div>
+          </div>
+          
+          <div className="dashboard-card text-center group hover:scale-105 transition-all duration-300">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div className="dashboard-stat-value">{totalCompanies}</div>
+            <div className="dashboard-stat-label">Entreprises</div>
+          </div>
+          
+          <div className="dashboard-card text-center group hover:scale-105 transition-all duration-300">
+            <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4.828 7l6.172 6.172M15 7l-6.172 6.172" />
+              </svg>
+            </div>
+            <div className="dashboard-stat-value">{pendingInvitations.length}</div>
+            <div className="dashboard-stat-label">Invitations</div>
+          </div>
+        </div>
+
+        <div className="ios-grid-2 gap-8">
+          {/* Profil utilisateur moderne */}
+          <div className="dashboard-card ios-slide-up" style={{animationDelay: '0.1s'}}>
+            <div className="flex items-center gap-6 mb-8">
+              <div className="relative">
+                {user.image ? (
+                  <Image
+                    src={user.image}
+                    alt={user.name || "Utilisateur"}
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-purple-500/30"
+                    width={80}
+                    height={80}
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-2xl font-bold">
+                    {user.name?.charAt(0) || user.email.charAt(0)}
+                  </div>
+                )}
+                <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-2 border-gray-950"></div>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  {user.name || "Utilisateur"}
+                </h2>
+                <p className="text-white/60 mb-1">{user.email}</p>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  {user.role === "ADMIN" ? "Administrateur" : "Utilisateur"}
+                </span>
+              </div>
             </div>
             
-            <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
-              <Link 
-                href="/dashboard/delete-account" 
-                className="flex items-center p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <div>
-                  <h3 className="font-medium">Supprimer mon compte</h3>
-                  <p className="text-sm text-red-500 dark:text-red-200">Cette action est irréversible</p>
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center justify-between p-4 ios-glass-light rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span className="text-white/80">Téléphone</span>
                 </div>
+                <span className="text-white">{user.phone || "Non défini"}</span>
+              </div>
+              
+              <div className="flex items-center justify-between p-4 ios-glass-light rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6M8 7l-2 9a1 1 0 001 1h8a1 1 0 001-1L14 7M8 7h6m0 0V3" />
+                  </svg>
+                  <span className="text-white/80">Membre depuis</span>
+                </div>
+                <span className="text-white">
+                  {new Date(user.createdAt).toLocaleDateString('fr-FR', { 
+                    year: 'numeric', 
+                    month: 'long' 
+                  })}
+                </span>
+              </div>
+            </div>
+            
+            <Link 
+              href="/dashboard/profile" 
+              className="w-full ios-button-primary justify-center"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              Modifier mon profil
+            </Link>
+          </div>
+
+          {/* Actions rapides */}
+          <div className="space-y-6 ios-slide-up" style={{animationDelay: '0.2s'}}>
+            {/* Entreprises */}
+            <div className="dashboard-card">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  Mes entreprises
+                </h3>
+                {pendingInvitations.length > 0 && (
+                  <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm rounded-full border border-orange-500/30">
+                    {pendingInvitations.length} en attente
+                  </span>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="text-center p-4 ios-glass-light rounded-2xl">
+                  <div className="text-2xl font-bold text-purple-400 mb-1">{ownedCompanies.length}</div>
+                  <div className="text-sm text-white/60">Créées</div>
+                </div>
+                <div className="text-center p-4 ios-glass-light rounded-2xl">
+                  <div className="text-2xl font-bold text-indigo-400 mb-1">{memberCompanies.length}</div>
+                  <div className="text-sm text-white/60">Membre</div>
+                </div>
+              </div>
+              
+              <Link 
+                href="/dashboard/companies" 
+                className="w-full ios-button-secondary justify-center"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Gérer mes entreprises
               </Link>
             </div>
+
+            {/* Boutique et commandes */}
+            <div className="dashboard-card">
+              <h3 className="text-xl font-semibold text-white flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                </div>
+                Mes achats
+              </h3>
+              
+              <div className="space-y-3">
+                <Link 
+                  href="/articles" 
+                  className="w-full ios-button-secondary justify-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 616 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  Voir la boutique
+                </Link>
+                
+                <Link 
+                  href="/cart" 
+                  className="w-full ios-button-secondary justify-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m-2.4 8l2 6h12M7 13v6M17 13v6" />
+                  </svg>
+                  Voir le panier
+                </Link>
+              </div>
+            </div>
+
+            {/* Admin Panel */}
+            {user.role === "ADMIN" && (
+              <div className="dashboard-card">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 616 0z" />
+                    </svg>
+                  </div>
+                  Administration
+                </h3>
+                <p className="ios-body mb-6">
+                                     Accédez au panneau d&apos;administration pour gérer les utilisateurs et les paramètres.
+                </p>
+                <Link 
+                  href="/dashboard/admin" 
+                  className="w-full ios-button-primary justify-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100-4m0 4v2m0-6V4" />
+                  </svg>
+                                     Panneau d&apos;administration
+                </Link>
+              </div>
+            )}
           </div>
         </div>
-        
-        {/* Liens légaux */}
-        <div className="mt-10 text-center">
-          <div className="flex justify-center gap-6 text-sm">
-            <Link href="/privacy-policy" className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors">
-              Politique de confidentialité
-            </Link>
-            <Link href="/tos" className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors">
-              Conditions d&apos;utilisation
-            </Link>
+
+        {/* Achats récents */}
+        {articlesArray.length > 0 && (
+          <div className="mt-12 ios-slide-up" style={{animationDelay: '0.3s'}}>
+            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              Mes achats récents
+            </h2>
+            
+            <div className="ios-grid-3">
+              {articlesArray.slice(0, 6).map((item) => (
+                <Link 
+                  href={`/articles/${item.article.id}`} 
+                  key={item.article.id}
+                                     className="product-card group ios-fade-in"
+                >
+                  <div className="product-image">
+                    {item.article.image ? (
+                      <Image
+                        src={item.article.image}
+                        alt={item.article.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-500 via-purple-400 to-indigo-500 flex items-center justify-center">
+                        <span className="text-white text-2xl font-bold">
+                          {item.article.title.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="absolute top-4 right-4">
+                      <span className="px-2 py-1 ios-glass-light text-white text-xs rounded-full">
+                        {item.totalQuantity}x
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="product-content">
+                    <h3 className="product-title text-lg">
+                      {item.article.title}
+                    </h3>
+                    <p className="ios-body text-sm mb-4">
+                      Acheté le {new Date(item.latestPurchaseDate).toLocaleDateString('fr-FR')}
+                    </p>
+                    <div className="product-price">
+                      {(item.article.price * item.totalQuantity).toFixed(2)} €
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        )}
+      </div>
     </main>
   );
 }

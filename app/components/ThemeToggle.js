@@ -8,7 +8,7 @@ const ThemeToggle = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg dark:bg-white/10 bg-gray-200 hover:dark:bg-white/20 hover:bg-gray-300 transition-colors"
+      className="p-2 rounded-lg ios-glass-light hover:bg-white/20 transition-colors relative z-nav"
       title={theme === "dark" ? "Passer au mode clair" : "Passer au mode sombre"}
     >
       {theme === "dark" ? (
@@ -18,7 +18,7 @@ const ThemeToggle = () => {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-5 h-5 text-white"
+          className="w-5 h-5 text-white relative z-nav"
         >
           <path
             strokeLinecap="round"
@@ -33,7 +33,7 @@ const ThemeToggle = () => {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-5 h-5 text-gray-700"
+          className="w-5 h-5 text-white relative z-nav"
         >
           <path
             strokeLinecap="round"

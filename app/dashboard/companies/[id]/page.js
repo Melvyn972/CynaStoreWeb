@@ -82,59 +82,166 @@ export default async function CompanyDetailsPage({ params }) {
   });
 
   return (
-      <main className="min-h-screen p-4 md:p-8 pb-24 bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-        <section className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 dark:text-white">
-                {company.name}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
-                {isOwner ? 'Vous êtes le propriétaire' : 'Vous êtes membre'}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <ButtonAccount />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Company Information */}
-            <div className="md:col-span-2 card bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden transition-all duration-200">
-              {/* [contenu inchangé] */}
-            </div>
-
-            {/* Actions - Remplacé par le composant client */}
-            <CompanyActions
-                company={company}
-                isOwner={isOwner}
-                pendingInvitations={pendingInvitations}
-            />
-          </div>
-
-          {/* Purchases */}
-          <CompanyPurchases purchases={purchases} />
-
-          {/* Members */}
-          <CompanyMembers
-              members={members}
-              isOwner={isOwner}
-              currentUserId={user.id}
-              companyId={company.id}
-              pendingInvitations={pendingInvitations}
-          />
-
-          {/* Back to dashboard */}
-          <div className="mt-8">
-            <Link href="/dashboard/companies" className="btn btn-outline normal-case">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="ios-container space-y-8">
+        {/* Header avec navigation */}
+        <div className="flex items-center justify-between ios-fade-in">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard/companies"
+              className="ios-button-secondary"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Retour aux entreprises
+              Retour
             </Link>
+            <div>
+              <h1 className="ios-title text-3xl md:text-4xl mb-2">
+                {company.name}
+              </h1>
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  isOwner 
+                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
+                    : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                }`}>
+                  {isOwner ? '👑 Propriétaire' : '👤 Membre'}
+                </span>
+                <span className="ios-body">
+                  {members.length} membre{members.length > 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
           </div>
-        </section>
-      </main>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <ButtonAccount />
+          </div>
+        </div>
+
+        {/* Contenu principal en grille */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Informations de l'entreprise */}
+          <div className="xl:col-span-2 dashboard-card ios-slide-up">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Informations de l&apos;entreprise</h2>
+                <p className="ios-body">Détails et coordonnées</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {/* Description */}
+              {company.description && (
+                <div className="ios-glass-light rounded-2xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Description
+                  </h3>
+                  <p className="ios-body">{company.description}</p>
+                </div>
+              )}
+
+              {/* Coordonnées */}
+              <div className="ios-glass-light rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  Coordonnées
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {company.email && (
+                    <div>
+                      <p className="text-white/60 text-sm">Email</p>
+                      <p className="text-white">{company.email}</p>
+                    </div>
+                  )}
+                  {company.phone && (
+                    <div>
+                      <p className="text-white/60 text-sm">Téléphone</p>
+                      <p className="text-white">{company.phone}</p>
+                    </div>
+                  )}
+                  {company.website && (
+                    <div>
+                      <p className="text-white/60 text-sm">Site web</p>
+                      <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors">
+                        {company.website}
+                      </a>
+                    </div>
+                  )}
+                  {company.address && (
+                    <div className="md:col-span-2">
+                      <p className="text-white/60 text-sm">Adresse</p>
+                      <p className="text-white">{company.address}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Informations légales */}
+              {(company.vatNumber || company.siretNumber) && (
+                <div className="ios-glass-light rounded-2xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Informations légales
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {company.vatNumber && (
+                      <div>
+                        <p className="text-white/60 text-sm">Numéro TVA</p>
+                        <p className="text-white font-mono">{company.vatNumber}</p>
+                      </div>
+                    )}
+                    {company.siretNumber && (
+                      <div>
+                        <p className="text-white/60 text-sm">SIRET</p>
+                        <p className="text-white font-mono">{company.siretNumber}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="ios-slide-up" style={{animationDelay: '0.1s'}}>
+            <CompanyActions
+              company={company}
+              isOwner={isOwner}
+              pendingInvitations={pendingInvitations}
+            />
+          </div>
+        </div>
+
+        {/* Achats */}
+        <div className="ios-slide-up" style={{animationDelay: '0.2s'}}>
+          <CompanyPurchases purchases={purchases} />
+        </div>
+
+        {/* Membres */}
+        <div className="ios-slide-up" style={{animationDelay: '0.3s'}}>
+          <CompanyMembers
+            members={members}
+            isOwner={isOwner}
+            currentUserId={user.id}
+            companyId={company.id}
+            pendingInvitations={pendingInvitations}
+          />
+        </div>
+      </div>
+    </div>
   );
 }

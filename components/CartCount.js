@@ -41,10 +41,10 @@ export default function CartCount() {
   }, [pathname]); // Refetch when pathname changes
 
   return (
-    <Link href="/cart" className="relative flex items-center gap-1">
+    <Link href="/cart" className="relative flex items-center gap-1 z-nav">
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
-        className="h-6 w-6 text-base-content dark:text-white" 
+        className="h-6 w-6 text-white relative z-nav" 
         fill="none" 
         viewBox="0 0 24 24" 
         stroke="currentColor"
@@ -57,7 +57,7 @@ export default function CartCount() {
         />
       </svg>
       {!isLoading && (
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium text-white relative z-nav">
           {count > 0 ? count : ''}
         </span>
       )}

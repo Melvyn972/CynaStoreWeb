@@ -5,56 +5,275 @@
 html,
 body {
   scroll-behavior: smooth !important;
-  background-color: black;
+  background-color: #0a0a0a;
   color: white;
+  padding-top: 0;
 }
 
-/* It makes the HTML progress bar filling smooth when value change. */
-progress::-webkit-progress-value {
-  transition: 0.6s width ease-out;
-}
-
+/* Styles de base iOS 16 */
 @layer base {
+  .ios-glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+  
+  .ios-glass-light {
+    @apply bg-white/10 backdrop-blur-2xl border border-white/20;
+  }
+  
+  .ios-card {
+    @apply bg-gray-950/80 backdrop-blur-xl border border-purple-500/20 rounded-3xl overflow-hidden;
+  }
+  
+  .ios-button {
+    @apply px-4 py-3 rounded-2xl font-medium transition-all duration-300 active:scale-95 flex items-center justify-center text-center;
+    min-height: 48px;
+    line-height: 1.3;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    text-align: center;
+  }
+  
+  .ios-button-primary {
+    @apply ios-button bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-105;
+  }
+  
+  .ios-button-secondary {
+    @apply ios-button ios-glass-light text-white/90 hover:bg-white/20 hover:text-white;
+  }
+  
+  .ios-input {
+    @apply w-full px-4 py-3.5 bg-gray-950/50 border border-purple-500/20 rounded-2xl text-white placeholder:text-gray-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all;
+  }
+  
   .btn-gradient {
     @apply !bg-gradient !bg-[length:300%_300%] hover:saturate-[1.2] shadow duration-100 !border-0 !border-transparent !bg-transparent animate-shimmer disabled:!bg-none disabled:!bg-gray-500/30  !text-white;
   }
+  
   .btn {
-    @apply !capitalize;
+    @apply inline-flex items-center justify-center text-center whitespace-nowrap;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    line-height: 1 !important;
   }
   
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-black;
+    @apply bg-transparent;
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-800 rounded-full hover:bg-gray-700 transition-colors;
+    @apply bg-purple-500/30 rounded-full hover:bg-purple-500/50 transition-colors;
   }
   
   ::selection {
-    @apply bg-purple-500/20 text-white;
+    @apply bg-purple-500/30 text-white;
+  }
+  
+  .ios-bg-dark {
+    @apply bg-gradient-to-br from-black via-gray-950 to-purple-950/50;
+  }
+  
+  .ios-hero-section {
+    padding-top: 100px; /* Compenser la navigation fixe */
   }
 }
 
 @layer components {
-  .text-gradient {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400;
+  /* Typographie iOS 16 */
+  .ios-title {
+    @apply text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-purple-200 bg-clip-text text-transparent;
   }
   
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/5 hover:-translate-y-1;
+  .ios-subtitle {
+    @apply text-xl md:text-2xl font-semibold text-white/90;
   }
   
-  .glow {
-    box-shadow: 0 0 20px 5px rgba(149, 76, 233, 0.2);
+  .ios-body {
+    @apply text-base text-white/70 leading-relaxed;
   }
   
-  .glow-blue {
-    box-shadow: 0 0 20px 5px rgba(59, 130, 246, 0.2);
+  /* Cartes et conteneurs iOS 16 */
+  .ios-section {
+    @apply py-20 px-6 md:px-10;
+  }
+  
+  .ios-container {
+    @apply max-w-7xl mx-auto;
+  }
+  
+  .ios-grid {
+    @apply grid gap-6 md:gap-8;
+  }
+  
+  .ios-grid-2 {
+    @apply ios-grid grid-cols-1 md:grid-cols-2;
+  }
+  
+  .ios-grid-3 {
+    @apply ios-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  .ios-grid-4 {
+    @apply ios-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4;
+  }
+  
+  /* Animations iOS 16 */
+  .ios-hover {
+    @apply transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20;
+  }
+  
+  .ios-float {
+    @apply animate-float;
+  }
+  
+  .ios-fade-in {
+    @apply animate-fadeIn;
+  }
+  
+  .ios-slide-up {
+    @apply animate-slideUp;
+  }
+  
+  /* Filtres et effets */
+  .ios-blur {
+    @apply backdrop-blur-3xl;
+  }
+  
+  .ios-glow {
+    box-shadow: 0 0 40px 10px rgba(168, 85, 247, 0.15);
+  }
+  
+  .ios-glow-strong {
+    box-shadow: 0 0 60px 15px rgba(168, 85, 247, 0.25);
+  }
+  
+  /* Navigation moderne */
+  .ios-nav {
+    @apply fixed top-0 left-0 right-0 transition-all duration-500;
+    z-index: 9999 !important;
+    position: fixed !important;
+  }
+  
+  .ios-nav * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .ios-nav-scrolled {
+    @apply bg-black/80 backdrop-blur-2xl border-b border-purple-500/20;
+  }
+  
+  /* Hiérarchie des z-index */
+  .z-nav {
+    z-index: 9999 !important;
+  }
+  
+  .z-floating {
+    z-index: 30 !important;
+  }
+  
+  .z-modal {
+    z-index: 10000 !important;
+  }
+  
+  /* Boutique et produits */
+  .product-card {
+    @apply ios-card p-0 overflow-hidden ios-hover;
+  }
+  
+  .product-image {
+    @apply relative w-full h-64 overflow-hidden;
+  }
+  
+  .product-content {
+    @apply p-6 space-y-4;
+  }
+  
+  .product-title {
+    @apply text-xl font-semibold text-white group-hover:text-purple-300 transition-colors;
+  }
+  
+  .product-price {
+    @apply text-2xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent;
+  }
+  
+  /* Filtres boutique */
+  .filter-container {
+    @apply ios-glass-light rounded-3xl p-6 space-y-6 sticky top-24;
+  }
+  
+  .filter-group {
+    @apply space-y-3;
+  }
+  
+  .filter-title {
+    @apply text-lg font-semibold text-white mb-4;
+  }
+  
+  .filter-item {
+    @apply flex items-center space-x-3 text-white/80 hover:text-white transition-colors cursor-pointer;
+  }
+  
+  /* Dashboard utilisateur */
+  .dashboard-card {
+    @apply ios-card p-8 space-y-6;
+  }
+  
+  .dashboard-stat {
+    @apply text-center space-y-2;
+  }
+  
+  .dashboard-stat-value {
+    @apply text-3xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent;
+  }
+  
+  .dashboard-stat-label {
+    @apply text-sm text-white/60 uppercase tracking-wide font-medium;
+  }
+  
+  /* Panier */
+  .cart-item {
+    @apply ios-glass-light rounded-2xl p-6 flex items-center space-x-6;
+  }
+  
+  .cart-summary {
+    @apply ios-card p-8 sticky top-24;
+  }
+  
+  /* Boutons iOS 16 avancés */
+  .hero-btn {
+    @apply inline-flex items-center justify-center text-center whitespace-nowrap;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    line-height: 1.2 !important;
+    padding: 1rem 2.5rem !important;
+    border-radius: 1rem !important;
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    min-width: 180px !important;
+    height: auto !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .hero-btn:hover {
+    transform: translateY(-2px) scale(1.05) !important;
+  }
+  
+  .hero-btn:active {
+    transform: translateY(0) scale(0.98) !important;
   }
 }
 
@@ -63,7 +282,58 @@ progress::-webkit-progress-value {
     mask-image: radial-gradient(circle at center, black, transparent 80%);
   }
   
-  .backdrop-blur-xl {
-    backdrop-filter: blur(24px);
+  .backdrop-blur-3xl {
+    backdrop-filter: blur(40px);
   }
+  
+  .force-center {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+  
+  /* Gradients iOS 16 */
+  .gradient-purple {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .gradient-purple-pink {
+    background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+  }
+  
+  .gradient-cosmic {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  }
+}
+
+/* Styles spécifiques pour forcer les boutons Hero */
+.hero-btn,
+a.hero-btn,
+.hero-btn:where(*) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  line-height: 1.2 !important;
+  padding: 1rem 2.5rem !important;
+  border-radius: 1rem !important;
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  min-width: 180px !important;
+  height: auto !important;
+  text-decoration: none !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.hero-btn:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 20px 40px rgba(168, 85, 247, 0.3) !important;
+}
+
+.hero-btn:active {
+  transform: translateY(0) scale(0.98) !important;
 }

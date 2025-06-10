@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
-import Footer from "@/components/Footer"; // ← your footer component
+import Footer from "@/components/Footer";
 
 export const metadata = getSEOTags({
   title: `Politique de Confidentialité | ${config.appName}`,
@@ -12,94 +12,163 @@ export const metadata = getSEOTags({
 export default function PrivacyPolicy() {
   return (
     <>
-      <main
-        className="relative w-full min-h-screen flex flex-col items-center justify-center
-                   bg-gradient-to-b from-base-100 to-base-200 dark:bg-black
-                   text-base-content dark:text-white overflow-hidden py-24"
-      >
-        {/* Overlay léger */}
-        <div
-          className="absolute inset-0
-                     bg-gradient-to-br from-base-100 via-base-100 to-base-200/90
-                     dark:from-black dark:via-black dark:to-gray-900
-                     opacity-90 z-0"
-        />
-
-        {/* Décorations circulaires */}
+      <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950">
+        {/* Décorations */}
         <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full
-                        bg-purple-300/20 dark:bg-purple-500/10 blur-3xl" />
+                        bg-purple-500/10 dark:bg-purple-400/5 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full
-                        bg-blue-300/20 dark:bg-blue-500/10 blur-3xl" />
+                        bg-blue-500/10 dark:bg-blue-400/5 blur-3xl" />
 
-        {/* Conteneur principal */}
-        <div
-          className="relative z-10 max-w-5xl w-full mx-auto
-                     bg-white dark:bg-gray-900 rounded-xl shadow-lg
-                     overflow-hidden"
-        >
-          <div className="p-8">
-            {/* Bouton Retour */}
+        <div className="relative z-10 ios-container py-24 px-6">
+          {/* Bouton retour */}
+          <div className="mb-12">
             <Link
               href="/"
-              className="inline-flex items-center mb-6 text-base-content dark:text-white hover:underline"
+              className="inline-flex items-center ios-button-secondary"
             >
-              ← Retour à l’accueil
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Retour à l&apos;accueil
             </Link>
+          </div>
 
-            {/* Titre gradient */}
-            <h1
-              className="text-3xl font-extrabold mb-6
-                         bg-clip-text text-transparent
-                         bg-gradient-to-r from-purple-600 to-blue-600
-                         dark:from-white dark:to-gray-300"
-            >
-              Politique de Confidentialité – {config.appName}
-            </h1>
+          {/* Contenu principal */}
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-12 ios-fade-in">
+              <h1 className="ios-title text-4xl md:text-5xl mb-6">
+                Politique de Confidentialité
+              </h1>
+              <p className="ios-body text-lg">
+                Dernière mise à jour : 24 avril 2025
+              </p>
+            </div>
 
-            {/* Contenu de la politique */}
-            <pre
-              className="leading-relaxed whitespace-pre-wrap text-left"
-              style={{ fontFamily: "sans-serif" }}
-            >{`Dernière mise à jour : 24 avril 2025
+            {/* Contenu */}
+            <div className="dashboard-card ios-slide-up">
+              <div className="prose prose-invert prose-purple max-w-none">
+                <div className="ios-body space-y-6 leading-relaxed">
+                  <p>
+                    Merci de visiter Cyna (&quot;nous&quot;, &quot;notre&quot; ou &quot;nos&quot;). Cette Politique de Confidentialité décrit comment nous collectons, utilisons et protégeons vos informations personnelles et non personnelles lorsque vous utilisez notre site web accessible à l&apos;adresse https://Cyna.fr (&quot;le Site&quot;).
+                  </p>
+                  
+                  <p>
+                    En accédant ou en utilisant le Site, vous acceptez les termes de cette Politique de Confidentialité.
+                  </p>
 
-Merci de visiter Cyna ("nous", "notre" ou "nos"). Cette Politique de Confidentialité décrit comment nous collectons, utilisons et protégeons vos informations personnelles et non personnelles lorsque vous utilisez notre site web accessible à l'adresse https://Cyna.fr ("le Site").
+                  <div className="mt-8">
+                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                      <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">1</span>
+                      </div>
+                      Données collectées
+                    </h2>
+                    
+                    <div className="space-y-4 ml-9">
+                      <div>
+                        <h3 className="text-lg font-semibold text-purple-300 mb-2">1.1 Données personnelles</h3>
+                        <p>Nous collectons les informations suivantes :</p>
+                        <ul className="list-disc list-inside mt-2 space-y-1 text-white/80">
+                          <li><strong>Nom :</strong> pour personnaliser votre expérience et faciliter la communication.</li>
+                          <li><strong>Adresse e-mail :</strong> pour vous envoyer des informations liées à vos commandes, notifications importantes, et communications.</li>
+                          <li><strong>Informations de paiement :</strong> pour traiter vos commandes de manière sécurisée. Ces données ne sont pas stockées sur nos serveurs et sont traitées via un prestataire de paiement sécurisé.</li>
+                        </ul>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-semibold text-purple-300 mb-2">1.2 Données non personnelles</h3>
+                        <p>
+                          Nous utilisons des cookies pour collecter des informations non personnelles telles que l&apos;adresse IP, le type de navigateur, les informations sur l&apos;appareil, et les habitudes de navigation. Cela nous aide à améliorer votre expérience, analyser les tendances et optimiser nos services.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-En accédant ou en utilisant le Site, vous acceptez les termes de cette Politique de Confidentialité.
+                  <div className="mt-8">
+                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                      <div className="w-6 h-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">2</span>
+                      </div>
+                      Finalité de la collecte
+                    </h2>
+                    <div className="ml-9">
+                      <p>
+                        Les données collectées sont utilisées exclusivement pour le traitement des commandes, l&apos;envoi de confirmations, le support client et le suivi des statuts de commande.
+                      </p>
+                    </div>
+                  </div>
 
-1. Données collectées
+                  <div className="mt-8">
+                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                      <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">3</span>
+                      </div>
+                      Partage des données
+                    </h2>
+                    <div className="ml-9">
+                      <p>
+                        Nous ne partageons vos données personnelles avec aucun tiers, sauf si cela est strictement nécessaire au traitement de votre commande (ex. : prestataire de paiement). Nous ne vendons, n&apos;échangeons ou ne louons vos données à aucun tiers.
+                      </p>
+                    </div>
+                  </div>
 
-1.1 Données personnelles
-Nous collectons les informations suivantes :
-- Nom : pour personnaliser votre expérience et faciliter la communication.
-- Adresse e-mail : pour vous envoyer des informations liées à vos commandes, notifications importantes, et communications.
-- Informations de paiement : pour traiter vos commandes de manière sécurisée. Ces données ne sont pas stockées sur nos serveurs et sont traitées via un prestataire de paiement sécurisé.
+                  <div className="mt-8">
+                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                      <div className="w-6 h-6 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">4</span>
+                      </div>
+                      Protection des enfants
+                    </h2>
+                    <div className="ml-9">
+                      <p>
+                        Cyna ne s&apos;adresse pas aux enfants de moins de 13 ans. Nous ne collectons pas sciemment de données personnelles auprès d&apos;enfants. Si vous êtes un parent ou tuteur et que vous pensez que votre enfant nous a transmis des données personnelles, contactez-nous à l&apos;adresse indiquée ci-dessous.
+                      </p>
+                    </div>
+                  </div>
 
-1.2 Données non personnelles
-Nous utilisons des cookies pour collecter des informations non personnelles telles que l'adresse IP, le type de navigateur, les informations sur l'appareil, et les habitudes de navigation. Cela nous aide à améliorer votre expérience, analyser les tendances et optimiser nos services.
+                  <div className="mt-8">
+                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                      <div className="w-6 h-6 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">5</span>
+                      </div>
+                      Modifications de la politique
+                    </h2>
+                    <div className="ml-9">
+                      <p>
+                        Cette Politique de Confidentialité peut être modifiée à tout moment. En cas de changement significatif, nous vous en informerons par e-mail. Les mises à jour seront également disponibles sur cette page.
+                      </p>
+                    </div>
+                  </div>
 
-2. Finalité de la collecte
-Les données collectées sont utilisées exclusivement pour le traitement des commandes, l’envoi de confirmations, le support client et le suivi des statuts de commande.
-
-3. Partage des données
-Nous ne partageons vos données personnelles avec aucun tiers, sauf si cela est strictement nécessaire au traitement de votre commande (ex. : prestataire de paiement). Nous ne vendons, n’échangeons ou ne louons vos données à aucun tiers.
-
-4. Protection des enfants
-Cyna ne s’adresse pas aux enfants de moins de 13 ans. Nous ne collectons pas sciemment de données personnelles auprès d’enfants. Si vous êtes un parent ou tuteur et que vous pensez que votre enfant nous a transmis des données personnelles, contactez-nous à l’adresse indiquée ci-dessous.
-
-5. Modifications de la politique
-Cette Politique de Confidentialité peut être modifiée à tout moment. En cas de changement significatif, nous vous en informerons par e-mail. Les mises à jour seront également disponibles sur cette page.
-
-6. Contact
-Pour toute question ou demande concernant cette Politique de Confidentialité, vous pouvez nous contacter à l'adresse suivante :
-
-Email : supportcyna@gmail.com
-
-En utilisant Cyna, vous acceptez les termes de cette Politique de Confidentialité.`}</pre>
+                  <div className="mt-8">
+                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                      <div className="w-6 h-6 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">6</span>
+                      </div>
+                      Contact
+                    </h2>
+                    <div className="ml-9 space-y-4">
+                      <p>
+                        Pour toute question ou demande concernant cette Politique de Confidentialité, vous pouvez nous contacter à l&apos;adresse suivante :
+                      </p>
+                      <div className="ios-glass-light rounded-xl p-4">
+                        <p className="text-white font-semibold">
+                          📧 Email : <a href="mailto:supportcyna@gmail.com" className="text-purple-400 hover:text-purple-300 transition-colors">supportcyna@gmail.com</a>
+                        </p>
+                      </div>
+                      <p className="text-sm text-white/60">
+                        En utilisant Cyna, vous acceptez les termes de cette Politique de Confidentialité.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>
 
-      {/* Ton footer */}
       <Footer />
     </>
   );
