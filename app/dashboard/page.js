@@ -50,12 +50,42 @@ export default async function Dashboard() {
 
   const articlesArray = Object.values(groupedPurchases);
 
+  // Get company information
+  const ownedCompanies = await prisma.company.findMany({
+    where: { ownerId: user.id },
+  });
+
+  const memberCompanies = await prisma.companyMember.findMany({
+    where: { userId: user.id },
+    include: { company: true },
+  });
+
+  const totalCompanies = ownedCompanies.length + 
+    memberCompanies.filter(m => !ownedCompanies.some(c => c.id === m.companyId)).length;
+
+  // Get pending invitations
+  const pendingInvitations = await prisma.companyInvitation.findMany({
+    where: { 
+      userId: user.id,
+      status: "PENDING"
+    }
+  });
+
   return (
     <main className="min-h-screen p-4 md:p-8 pb-24 bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <section className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 dark:text-white">Tableau de bord</h1>
           <div className="flex items-center gap-3">
+            <Link 
+              href="/" 
+              className="btn btn-outline btn-primary normal-case"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Accueil
+            </Link>
             <ThemeToggle />
             <ButtonAccount />
           </div>
@@ -99,6 +129,52 @@ export default async function Dashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                   Modifier mon profil
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Mes entreprises */}
+          <div className="card bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden transition-all duration-200 hover:shadow-xl">
+            <div className="card-body p-6">
+              <h2 className="card-title text-xl font-bold text-gray-800 dark:text-white mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Mes entreprises
+                {pendingInvitations.length > 0 && (
+                  <span className="badge badge-secondary ml-2">{pendingInvitations.length} invitation{pendingInvitations.length > 1 ? 's' : ''}</span>
+                )}
+              </h2>
+              
+              <div className="space-y-3">
+                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                  <span className="font-medium text-gray-600 dark:text-gray-400 w-40">Entreprises:</span> 
+                  <span className="text-gray-800 dark:text-white">{totalCompanies}</span>
+                </div>
+                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                  <span className="font-medium text-gray-600 dark:text-gray-400 w-40">Entreprises créées:</span> 
+                  <span className="text-gray-800 dark:text-white">{ownedCompanies.length}</span>
+                </div>
+                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                  <span className="font-medium text-gray-600 dark:text-gray-400 w-40">Membres d'entreprise:</span> 
+                  <span className="text-gray-800 dark:text-white">{memberCompanies.length}</span>
+                </div>
+                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                  <span className="font-medium text-gray-600 dark:text-gray-400 w-40">Invitations en attente:</span> 
+                  <span className="text-gray-800 dark:text-white">{pendingInvitations.length}</span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Link 
+                  href="/dashboard/companies" 
+                  className="btn btn-primary text-white normal-case"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Gérer mes entreprises
                 </Link>
               </div>
             </div>

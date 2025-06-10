@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import Header from "@/components/Header";
@@ -12,14 +12,46 @@ export default function CheckoutPage() {
   const [articles, setArticles] = useState({});
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [company, setCompany] = useState(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const companyId = searchParams.get('company');
+
+  // Fetch company details if companyId is provided
+  useEffect(() => {
+    const fetchCompanyDetails = async () => {
+      if (!companyId) return;
+      
+      try {
+        const response = await fetch(`/api/companies/${companyId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch company details');
+        }
+        
+        const companyData = await response.json();
+        setCompany(companyData);
+      } catch (error) {
+        console.error('Error fetching company details:', error);
+        toast.error("Erreur lors du chargement des détails de l'entreprise");
+        router.push('/cart'); // Redirect back to cart if company doesn't exist
+      }
+    };
+
+    fetchCompanyDetails();
+  }, [companyId, router]);
 
   // Fetch cart items
   useEffect(() => {
     const fetchCart = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/cart');
+        // If company ID is provided, fetch company cart
+        const endpoint = companyId 
+          ? `/api/cart/company?companyId=${companyId}`
+          : '/api/cart';
+          
+        const response = await fetch(endpoint);
         
         if (response.status === 401) {
           // User not logged in, redirect to login
@@ -63,7 +95,7 @@ export default function CheckoutPage() {
     };
 
     fetchCart();
-  }, [router]);
+  }, [companyId, router]);
 
   // Calculate total
   const calculateTotal = () => {
@@ -90,11 +122,22 @@ export default function CheckoutPage() {
       });
 
       // Create Stripe checkout session
-      const response = await apiClient.post("/stripe/create-cart-checkout", {
+      const endpoint = companyId
+        ? '/api/stripe/create-company-checkout'
+        : '/api/stripe/create-cart-checkout';
+      
+      const payload = {
         lineItems,
         successUrl: `${window.location.origin}/success`,
         cancelUrl: `${window.location.origin}/cart`,
-      });
+      };
+      
+      // Add companyId if buying for a company
+      if (companyId) {
+        payload.companyId = companyId;
+      }
+
+      const response = await apiClient.post(endpoint, payload);
 
       if (response.url) {
         // Redirect to Stripe checkout
@@ -145,7 +188,14 @@ export default function CheckoutPage() {
   return (
     <div className="container mx-auto px-4 py-20 min-h-screen">
       <Header />
-      <h1 className="text-3xl font-bold mt-16 mb-8">Finalisation de la commande</h1>
+      <h1 className="text-3xl font-bold mt-16 mb-8">
+        Finalisation de la commande
+        {company && (
+          <span className="text-xl font-normal ml-2 text-gray-600 dark:text-gray-400">
+            pour {company.name}
+          </span>
+        )}
+      </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -183,6 +233,49 @@ export default function CheckoutPage() {
               </table>
             </div>
           </div>
+
+          {company && (
+            <div className="bg-base-100 dark:bg-gray-800 p-6 rounded-lg shadow mb-6">
+              <h2 className="text-xl font-semibold mb-4">Informations de l&apos;entreprise</h2>
+              
+              <div className="space-y-3">
+                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                  <span className="font-medium text-gray-600 dark:text-gray-400 w-32">Nom:</span> 
+                  <span className="text-gray-800 dark:text-white">{company.name}</span>
+                </div>
+                {company.email && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">Email:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.email}</span>
+                  </div>
+                )}
+                {company.phone && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">Téléphone:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.phone}</span>
+                  </div>
+                )}
+                {company.address && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">Adresse:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.address}</span>
+                  </div>
+                )}
+                {company.vatNumber && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">N° TVA:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.vatNumber}</span>
+                  </div>
+                )}
+                {company.siretNumber && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">SIRET:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.siretNumber}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="lg:col-span-1">
@@ -203,6 +296,11 @@ export default function CheckoutPage() {
                   <span>Total</span>
                   <span>{calculateTotal()} €</span>
                 </div>
+                {company && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    Facturation à: {company.name}
+                  </div>
+                )}
               </div>
             </div>
             

@@ -6,10 +6,14 @@ import Link from "next/link";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import Header from "@/components/Header";
+
 export default function CartPage() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [articles, setArticles] = useState({});
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
   const router = useRouter();
 
   // Fetch cart items
@@ -62,6 +66,33 @@ export default function CartPage() {
 
     fetchCart();
   }, [router]);
+
+  // Fetch user's companies
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      setLoadingCompanies(true);
+      try {
+        const response = await fetch('/api/companies');
+        
+        if (!response.ok) {
+          if (response.status !== 401) { // Ignore auth errors
+            throw new Error('Failed to fetch companies');
+          }
+          return;
+        }
+        
+        const companiesData = await response.json();
+        setCompanies(companiesData);
+      } catch (error) {
+        console.error('Error fetching companies:', error);
+        // Don't show error to user, as companies are optional
+      } finally {
+        setLoadingCompanies(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
 
   const updateQuantity = async (cartItemId, newQuantity) => {
     try {
@@ -129,6 +160,16 @@ export default function CartPage() {
       }
       return total;
     }, 0).toFixed(2);
+  };
+
+  const handleCheckout = () => {
+    if (selectedCompany) {
+      // Redirect to company checkout
+      router.push(`/checkout?company=${selectedCompany}`);
+    } else {
+      // Redirect to personal checkout
+      router.push('/checkout');
+    }
   };
 
   if (loading) {
@@ -252,10 +293,19 @@ export default function CartPage() {
               </tbody>
             </table>
           </div>
+          
+          <div className="mt-6 flex justify-end">
+            <Link href="/articles" className="btn btn-outline">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Continuer mes achats
+            </Link>
+          </div>
         </div>
         
         <div className="lg:col-span-1">
-          <div className="bg-base-100 dark:bg-gray-800 p-6 rounded-lg shadow">
+          <div className="bg-base-100 dark:bg-gray-800 p-6 rounded-lg shadow sticky top-8">
             <h2 className="text-xl font-semibold mb-4">Résumé de la commande</h2>
             
             <div className="space-y-3 mb-6">
@@ -274,16 +324,37 @@ export default function CartPage() {
                 </div>
               </div>
             </div>
+
+            {/* Choix du compte d'achat */}
+            {!loadingCompanies && companies.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Commander pour</label>
+                <select 
+                  className="select select-bordered w-full" 
+                  value={selectedCompany || ""}
+                  onChange={(e) => setSelectedCompany(e.target.value || null)}
+                >
+                  <option value="">Mon compte personnel</option>
+                  <optgroup label="Mes entreprises">
+                    {companies.map(company => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+            )}
             
             <button 
-              className="btn btn-primary w-full"
-              onClick={() => router.push('/checkout')}
+              className="btn btn-primary w-full" 
+              onClick={handleCheckout}
             >
               Procéder au paiement
             </button>
             
-            <Link href="/articles" className="btn btn-outline w-full mt-3">
-              Continuer mes achats
+            <Link href="/" className="btn btn-outline w-full mt-3">
+              Annuler
             </Link>
           </div>
         </div>
