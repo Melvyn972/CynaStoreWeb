@@ -26,7 +26,20 @@ export default function CartCount() {
           throw new Error('Failed to fetch cart');
         }
         
-        const cartItems = await response.json();
+        const cartData = await response.json();
+        
+        // Extract cart items array from the API response
+        let cartItems = [];
+        if (cartData && Array.isArray(cartData.items)) {
+          cartItems = cartData.items;
+        } else if (Array.isArray(cartData)) {
+          // Handle case where API returns array directly (for backward compatibility)
+          cartItems = cartData;
+        } else {
+          console.error('Cart API returned invalid format:', cartData);
+          cartItems = [];
+        }
+        
         const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
         setCount(itemCount);
       } catch (error) {

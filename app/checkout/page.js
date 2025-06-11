@@ -64,11 +64,29 @@ export default function CheckoutPage() {
           throw new Error('Failed to fetch cart');
         }
         
-        const cartItems = await response.json();
-        setCart(cartItems);
+        const cartData = await response.json();
+        console.log('Checkout - Cart API response:', cartData);
         
-        // Get unique product IDs
-        const productIds = [...new Set(cartItems.map(item => item.productId))];
+        // Extract cart items array from the API response
+        let validCartItems = [];
+        if (cartData && Array.isArray(cartData.items)) {
+          validCartItems = cartData.items;
+          setCart(cartData.items);
+          console.log('Checkout - Using cartData.items:', validCartItems);
+        } else if (Array.isArray(cartData)) {
+          // Handle case where API returns array directly (for backward compatibility)
+          validCartItems = cartData;
+          setCart(cartData);
+          console.log('Checkout - Using cartData directly:', validCartItems);
+        } else {
+          console.error('Checkout - Cart API returned invalid format:', cartData);
+          setCart([]);
+          toast.error("Format de données du panier invalide");
+          return; // Exit early if data is invalid
+        }
+        
+        // Get unique product IDs - handle both productId and product.id formats
+        const productIds = [...new Set(validCartItems.map(item => item.productId || item.product?.id))];
         
         // Fetch product details
         if (productIds.length > 0) {
@@ -76,11 +94,23 @@ export default function CheckoutPage() {
           if (!articlesRes.ok) {
             throw new Error('Failed to fetch product details');
           }
-          const articlesData = await articlesRes.json();
+          const articlesResponse = await articlesRes.json();
+          
+          // Extract articles array from the API response
+          let articlesArray = [];
+          if (articlesResponse && Array.isArray(articlesResponse.articles)) {
+            articlesArray = articlesResponse.articles;
+          } else if (Array.isArray(articlesResponse)) {
+            // Handle case where API returns array directly (for backward compatibility)
+            articlesArray = articlesResponse;
+          } else {
+            console.error('Articles API returned invalid format:', articlesResponse);
+            articlesArray = [];
+          }
           
           // Convert to lookup object
           const articlesLookup = {};
-          articlesData.forEach(article => {
+          articlesArray.forEach(article => {
             articlesLookup[article.id] = article;
           });
           
@@ -99,8 +129,12 @@ export default function CheckoutPage() {
 
   // Calculate total
   const calculateTotal = () => {
+    if (!Array.isArray(cart)) {
+      return "0.00";
+    }
     return cart.reduce((total, item) => {
-      const article = articles[item.productId];
+      const productId = item.productId || item.product?.id;
+      const article = articles[productId];
       if (article) {
         return total + (article.price * item.quantity);
       }
@@ -113,9 +147,10 @@ export default function CheckoutPage() {
     try {
       // Create line items for Stripe checkout
       const lineItems = cart.map(item => {
-        const article = articles[item.productId];
+        const productId = item.productId || item.product?.id;
+        const article = articles[productId];
         return {
-          productId: item.productId,
+          productId: productId,
           quantity: item.quantity,
           price: article.price
         };
@@ -164,7 +199,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (cart.length === 0) {
+  if (!Array.isArray(cart) || cart.length === 0) {
     return (
       <div className="container mx-auto px-4 py-20 min-h-screen">
         <Header />
@@ -213,8 +248,9 @@ export default function CheckoutPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cart.map(item => {
-                    const article = articles[item.productId];
+                  {Array.isArray(cart) && cart.map(item => {
+                    const productId = item.productId || item.product?.id;
+                    const article = articles[productId];
                     
                     if (!article) {
                       return null; // Skip if article not found

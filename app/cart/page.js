@@ -9,6 +9,8 @@ import Header from "@/components/Header";
 import BackgroundEffects from "../components/BackgroundEffects";
 import ThemeToggle from "../components/ThemeToggle";
 
+// Updated to fix API response format handling - v2
+
 export default function CartPage() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +20,7 @@ export default function CartPage() {
   const [loadingCompanies, setLoadingCompanies] = useState(true);
   const router = useRouter();
 
-  // Fetch cart items
+  // Fetch cart items - UPDATED to fix API response handling
   useEffect(() => {
     const fetchCart = async () => {
       setLoading(true);
@@ -36,11 +38,29 @@ export default function CartPage() {
           throw new Error('Failed to fetch cart');
         }
         
-        const cartItems = await response.json();
-        setCart(cartItems);
+        const cartData = await response.json();
+        console.log('Cart API response:', cartData);
         
-        // Get unique product IDs
-        const productIds = [...new Set(cartItems.map(item => item.productId))];
+        // Extract cart items array from the API response
+        let validCartItems = [];
+        if (cartData && Array.isArray(cartData.items)) {
+          validCartItems = cartData.items;
+          setCart(cartData.items);
+          console.log('Using cartData.items:', validCartItems);
+        } else if (Array.isArray(cartData)) {
+          // Handle case where API returns array directly (for backward compatibility)
+          validCartItems = cartData;
+          setCart(cartData);
+          console.log('Using cartData directly:', validCartItems);
+        } else {
+          console.error('Cart API returned invalid format:', cartData);
+          setCart([]);
+          toast.error("Format de données du panier invalide");
+          return; // Exit early if data is invalid
+        }
+        
+        // Get unique product IDs - handle both productId and product.id formats
+        const productIds = [...new Set(validCartItems.map(item => item.productId || item.product?.id))];
         
         // Fetch product details
         if (productIds.length > 0) {
@@ -48,11 +68,26 @@ export default function CartPage() {
           if (!articlesRes.ok) {
             throw new Error('Failed to fetch product details');
           }
-          const articlesData = await articlesRes.json();
+          const articlesResponse = await articlesRes.json();
+          console.log('Articles API response:', articlesResponse);
+          
+          // Extract articles array from the API response
+          let articlesArray = [];
+          if (articlesResponse && Array.isArray(articlesResponse.articles)) {
+            articlesArray = articlesResponse.articles;
+            console.log('Using articlesResponse.articles:', articlesArray);
+          } else if (Array.isArray(articlesResponse)) {
+            // Handle case where API returns array directly (for backward compatibility)
+            articlesArray = articlesResponse;
+            console.log('Using articlesResponse directly:', articlesArray);
+          } else {
+            console.error('Articles API returned invalid format:', articlesResponse);
+            articlesArray = [];
+          }
           
           // Convert to lookup object
           const articlesLookup = {};
-          articlesData.forEach(article => {
+          articlesArray.forEach(article => {
             articlesLookup[article.id] = article;
           });
           
@@ -155,8 +190,12 @@ export default function CartPage() {
 
   // Calculate total
   const calculateTotal = () => {
+    if (!Array.isArray(cart)) {
+      return "0.00";
+    }
     return cart.reduce((total, item) => {
-      const article = articles[item.productId];
+      const productId = item.productId || item.product?.id;
+      const article = articles[productId];
       if (article) {
         return total + (article.price * item.quantity);
       }
@@ -194,7 +233,7 @@ export default function CartPage() {
     );
   }
 
-  if (cart.length === 0) {
+  if (!Array.isArray(cart) || cart.length === 0) {
     return (
       <div className="min-h-screen relative">
         <BackgroundEffects />
@@ -239,15 +278,16 @@ export default function CartPage() {
               <ThemeToggle />
             </div>
             <p className="ios-body">
-              {cart.length} article{cart.length > 1 ? 's' : ''} dans votre panier
+              {Array.isArray(cart) ? cart.length : 0} article{(Array.isArray(cart) ? cart.length : 0) > 1 ? 's' : ''} dans votre panier
             </p>
           </div>
           
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             {/* Articles du panier */}
             <div className="xl:col-span-2 space-y-4 ios-slide-up">
-              {cart.map(item => {
-                const article = articles[item.productId];
+              {Array.isArray(cart) && cart.map(item => {
+                const productId = item.productId || item.product?.id;
+                const article = articles[productId];
                 
                 if (!article) {
                   return null; // Skip if article not found
