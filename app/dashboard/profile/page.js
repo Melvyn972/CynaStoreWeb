@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -71,13 +72,14 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className="min-h-screen p-4 md:p-8 pb-24 bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <section className="max-w-3xl mx-auto">
+    <main className="min-h-screen relative overflow-hidden p-4 md:p-8 pb-24">
+      <BackgroundEffects />
+      <section className="max-w-3xl mx-auto relative z-20">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 dark:text-white">Modifier mon profil</h1>
+          <h1 className="ios-title text-3xl md:text-4xl">Modifier mon profil</h1>
           <Link 
             href="/dashboard" 
-            className="btn btn-outline btn-sm normal-case dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="ios-button-secondary"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -86,8 +88,8 @@ export default function ProfilePage() {
           </Link>
         </div>
         
-        <div className="card bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden transition-all duration-200">
-          <div className="card-body p-6">
+        <div className="dashboard-card ios-slide-up">
+          <div className="p-6">
             {error && (
               <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg flex items-start">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,12 +1,25 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/libs/prisma';
 
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const ids = searchParams.get('ids');
     const category = searchParams.get('category');
     const search = searchParams.get('search');
+    const page = parseInt(searchParams.get('page')) || 1;
+    const limit = parseInt(searchParams.get('limit')) || 10;
     
     let whereClause = {};
     
@@ -23,7 +36,7 @@ export async function GET(request) {
       whereClause.category = category;
     }
     
-    // Search
+    // Search - SQLite compatible
     if (search) {
       whereClause.OR = [
         {
@@ -38,20 +51,43 @@ export async function GET(request) {
         },
       ];
     }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Get articles with pagination
+    const [articles, totalCount] = await Promise.all([
+      prisma.articles.findMany({
+        where: whereClause,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.articles.count({
+        where: whereClause,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasMore = page < totalPages;
     
-    const articles = await prisma.articles.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-    
-    return NextResponse.json(articles);
+    return NextResponse.json({
+      articles,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasMore,
+      }
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error('Failed to fetch articles:', error);
     return NextResponse.json(
       { message: 'Failed to fetch articles' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -73,12 +109,12 @@ export async function POST(request) {
       },
     });
     
-    return NextResponse.json(article);
+    return NextResponse.json(article, { headers: corsHeaders });
   } catch (error) {
     console.error('Failed to create article:', error);
     return NextResponse.json(
       { message: 'Failed to create article' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 

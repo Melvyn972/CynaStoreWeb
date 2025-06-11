@@ -1,0 +1,84 @@
+import { NextResponse } from 'next/server';
+import prisma from '@/libs/prisma';
+
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q') || '';
+    const page = parseInt(searchParams.get('page')) || 1;
+    const limit = parseInt(searchParams.get('limit')) || 10;
+    
+    let whereClause = {};
+    
+    // Search functionality - SQLite compatible
+    if (query.trim()) {
+      whereClause.OR = [
+        {
+          title: {
+            contains: query,
+          },
+        },
+        {
+          description: {
+            contains: query,
+          },
+        },
+        {
+          category: {
+            contains: query,
+          },
+        },
+      ];
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Get articles with pagination
+    const [articles, totalCount] = await Promise.all([
+      prisma.articles.findMany({
+        where: whereClause,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.articles.count({
+        where: whereClause,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasMore = page < totalPages;
+    
+    return NextResponse.json({
+      articles,
+      query,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasMore,
+      }
+    }, { headers: corsHeaders });
+  } catch (error) {
+    console.error('Failed to search articles:', error);
+    return NextResponse.json(
+      { message: 'Failed to search articles' },
+      { status: 500, headers: corsHeaders }
+    );
+  }
+} 

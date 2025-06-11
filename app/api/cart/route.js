@@ -1,39 +1,73 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/libs/next-auth';
+import { getAuthenticatedUser } from '@/libs/auth-middleware';
 import prisma from '@/libs/prisma';
 
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
 // GET /api/cart - Get current user's cart
-export async function GET() {
-  const session = await getServerSession(authOptions);
+export async function GET(request) {
+  const user = await getAuthenticatedUser(request);
   
-  if (!session?.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401, headers: corsHeaders });
   }
 
   try {
     const cartItems = await prisma.cart.findMany({
       where: {
-        userId: session.user.id,
+        userId: user.id,
       },
+      include: {
+        article: {
+          select: {
+            id: true,
+            title: true,
+            price: true,
+            image: true,
+          }
+        }
+      }
     });
 
-    return NextResponse.json(cartItems);
+    // Format the response for mobile app compatibility
+    const formattedItems = cartItems.map(item => ({
+      id: item.id,
+      quantity: item.quantity,
+      price: item.article?.price || 0,
+      title: item.article?.title || 'Unknown Product',
+      product: {
+        id: item.article?.id,
+        title: item.article?.title,
+        price: item.article?.price,
+        image: item.article?.image,
+      }
+    }));
+
+    return NextResponse.json({ items: formattedItems }, { headers: corsHeaders });
   } catch (error) {
     console.error('Failed to get cart items:', error);
     return NextResponse.json(
       { message: 'Failed to get cart items' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
 
 // POST /api/cart - Add item to cart
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
+  const user = await getAuthenticatedUser(request);
   
-  if (!session?.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401, headers: corsHeaders });
   }
 
   try {
@@ -42,7 +76,7 @@ export async function POST(request) {
     if (!productId || typeof quantity !== 'number' || quantity < 1) {
       return NextResponse.json(
         { message: 'Invalid product ID or quantity' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -56,14 +90,14 @@ export async function POST(request) {
     if (!product) {
       return NextResponse.json(
         { message: 'Product not found' },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
     // Check if item already exists in cart
     const existingCartItem = await prisma.cart.findFirst({
       where: {
-        userId: session.user.id,
+        userId: user.id,
         productId,
       },
     });
@@ -84,29 +118,29 @@ export async function POST(request) {
       // Create new cart item
       cartItem = await prisma.cart.create({
         data: {
-          userId: session.user.id,
+          userId: user.id,
           productId,
           quantity,
         },
       });
     }
 
-    return NextResponse.json(cartItem);
+    return NextResponse.json(cartItem, { headers: corsHeaders });
   } catch (error) {
     console.error('Failed to add item to cart:', error);
     return NextResponse.json(
       { message: 'Failed to add item to cart' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
 
 // DELETE /api/cart - Remove item from cart
 export async function DELETE(request) {
-  const session = await getServerSession(authOptions);
+  const user = await getAuthenticatedUser(request);
   
-  if (!session?.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401, headers: corsHeaders });
   }
 
   try {
@@ -115,7 +149,7 @@ export async function DELETE(request) {
     if (!cartItemId) {
       return NextResponse.json(
         { message: 'Cart item ID is required' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -126,10 +160,10 @@ export async function DELETE(request) {
       },
     });
 
-    if (!cartItem || cartItem.userId !== session.user.id) {
+    if (!cartItem || cartItem.userId !== user.id) {
       return NextResponse.json(
         { message: 'Cart item not found' },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -140,22 +174,22 @@ export async function DELETE(request) {
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (error) {
     console.error('Failed to remove item from cart:', error);
     return NextResponse.json(
       { message: 'Failed to remove item from cart' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
 
 // PATCH /api/cart - Update cart item quantity
 export async function PATCH(request) {
-  const session = await getServerSession(authOptions);
+  const user = await getAuthenticatedUser(request);
   
-  if (!session?.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401, headers: corsHeaders });
   }
 
   try {
@@ -164,7 +198,7 @@ export async function PATCH(request) {
     if (!cartItemId || typeof quantity !== 'number' || quantity < 1) {
       return NextResponse.json(
         { message: 'Invalid cart item ID or quantity' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -175,10 +209,10 @@ export async function PATCH(request) {
       },
     });
 
-    if (!cartItem || cartItem.userId !== session.user.id) {
+    if (!cartItem || cartItem.userId !== user.id) {
       return NextResponse.json(
         { message: 'Cart item not found' },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -192,12 +226,12 @@ export async function PATCH(request) {
       },
     });
 
-    return NextResponse.json(updatedCartItem);
+    return NextResponse.json(updatedCartItem, { headers: corsHeaders });
   } catch (error) {
     console.error('Failed to update cart item:', error);
     return NextResponse.json(
       { message: 'Failed to update cart item' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 

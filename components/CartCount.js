@@ -26,7 +26,20 @@ export default function CartCount() {
           throw new Error('Failed to fetch cart');
         }
         
-        const cartItems = await response.json();
+        const cartData = await response.json();
+        
+        // Extract cart items array from the API response
+        let cartItems = [];
+        if (cartData && Array.isArray(cartData.items)) {
+          cartItems = cartData.items;
+        } else if (Array.isArray(cartData)) {
+          // Handle case where API returns array directly (for backward compatibility)
+          cartItems = cartData;
+        } else {
+          console.error('Cart API returned invalid format:', cartData);
+          cartItems = [];
+        }
+        
         const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
         setCount(itemCount);
       } catch (error) {
@@ -41,10 +54,10 @@ export default function CartCount() {
   }, [pathname]); // Refetch when pathname changes
 
   return (
-    <Link href="/cart" className="relative flex items-center gap-1">
+    <Link href="/cart" className="relative flex items-center gap-1 z-nav">
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
-        className="h-6 w-6 text-base-content dark:text-white" 
+        className="h-6 w-6 text-gray-900 dark:text-white relative z-nav" 
         fill="none" 
         viewBox="0 0 24 24" 
         stroke="currentColor"
@@ -57,7 +70,7 @@ export default function CartCount() {
         />
       </svg>
       {!isLoading && (
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium text-gray-900 dark:text-white relative z-nav">
           {count > 0 ? count : ''}
         </span>
       )}

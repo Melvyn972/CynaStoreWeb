@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -55,11 +56,14 @@ model User {
   consentThirdParty   Boolean   @default(false)
   dataRetentionPeriod String    @default("2_years") // How long we keep user data
 
-  accounts       Account[]
-  sessions       Session[]
-  cart           Cart[]
-  purchases      Purchase[] // User's purchased articles
-  consentHistory ConsentHistory[] // Track consent history
+  accounts          Account[]
+  sessions          Session[]
+  cart              Cart[]
+  purchases         Purchase[] // User's purchased articles
+  consentHistory    ConsentHistory[] // Track consent history
+  ownedCompanies    Company[] // Companies created by this user
+  companyMemberships CompanyMember[] // Companies this user is a member of
+  companyInvitations CompanyInvitation[] // Invitations received by this user
 }
 
 enum UserRole {
@@ -93,6 +97,7 @@ model Articles {
   updatedAt   DateTime   @updatedAt
   purchases   Purchase[] // Users who purchased this article
   cartItems   Cart[] // Items in users' carts
+  companyPurchases CompanyPurchase[] // Company purchases of this article
 }
 
 model Purchase {
@@ -130,4 +135,86 @@ model ConsentHistory {
   userAgent   String? // Store browser/device info
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Company model representing a business entity
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  logo        String?
+  address     String?
+  phone       String?
+  email       String?
+  website     String?
+  vatNumber   String?
+  siretNumber String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ownerId     String   // Creator/owner of the company
+  
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members     CompanyMember[]
+  invitations CompanyInvitation[]
+  purchases   CompanyPurchase[]
+}
+
+// Company members - users associated with a company
+model CompanyMember {
+  id          String      @id @default(cuid())
+  companyId   String
+  userId      String
+  role        CompanyRole @default(MEMBER)
+  joinedAt    DateTime    @default(now())
+  
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([companyId, userId])
+}
+
+// Role within a company
+enum CompanyRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// Invitation to join a company
+model CompanyInvitation {
+  id          String   @id @default(cuid())
+  companyId   String
+  userId      String   // Invited user
+  email       String   // Email of invited user
+  status      InvitationStatus @default(PENDING)
+  role        CompanyRole @default(MEMBER)
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Status of company invitation
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+// Company purchases - articles purchased by a company
+model CompanyPurchase {
+  id            String    @id @default(cuid())
+  companyId     String
+  articleId     String
+  purchasedById String    // User who made the purchase on behalf of the company
+  purchaseDate  DateTime  @default(now())
+  quantity      Int       @default(1)
+  paidAt        DateTime?
+  orderId       String?
+  
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  article       Articles  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 }

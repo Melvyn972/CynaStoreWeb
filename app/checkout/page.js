@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import Header from "@/components/Header";
@@ -12,14 +12,46 @@ export default function CheckoutPage() {
   const [articles, setArticles] = useState({});
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [company, setCompany] = useState(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const companyId = searchParams.get('company');
+
+  // Fetch company details if companyId is provided
+  useEffect(() => {
+    const fetchCompanyDetails = async () => {
+      if (!companyId) return;
+      
+      try {
+        const response = await fetch(`/api/companies/${companyId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch company details');
+        }
+        
+        const companyData = await response.json();
+        setCompany(companyData);
+      } catch (error) {
+        console.error('Error fetching company details:', error);
+        toast.error("Erreur lors du chargement des détails de l'entreprise");
+        router.push('/cart'); // Redirect back to cart if company doesn't exist
+      }
+    };
+
+    fetchCompanyDetails();
+  }, [companyId, router]);
 
   // Fetch cart items
   useEffect(() => {
     const fetchCart = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/cart');
+        // If company ID is provided, fetch company cart
+        const endpoint = companyId 
+          ? `/api/cart/company?companyId=${companyId}`
+          : '/api/cart';
+          
+        const response = await fetch(endpoint);
         
         if (response.status === 401) {
           // User not logged in, redirect to login
@@ -32,11 +64,29 @@ export default function CheckoutPage() {
           throw new Error('Failed to fetch cart');
         }
         
-        const cartItems = await response.json();
-        setCart(cartItems);
+        const cartData = await response.json();
+        console.log('Checkout - Cart API response:', cartData);
         
-        // Get unique product IDs
-        const productIds = [...new Set(cartItems.map(item => item.productId))];
+        // Extract cart items array from the API response
+        let validCartItems = [];
+        if (cartData && Array.isArray(cartData.items)) {
+          validCartItems = cartData.items;
+          setCart(cartData.items);
+          console.log('Checkout - Using cartData.items:', validCartItems);
+        } else if (Array.isArray(cartData)) {
+          // Handle case where API returns array directly (for backward compatibility)
+          validCartItems = cartData;
+          setCart(cartData);
+          console.log('Checkout - Using cartData directly:', validCartItems);
+        } else {
+          console.error('Checkout - Cart API returned invalid format:', cartData);
+          setCart([]);
+          toast.error("Format de données du panier invalide");
+          return; // Exit early if data is invalid
+        }
+        
+        // Get unique product IDs - handle both productId and product.id formats
+        const productIds = [...new Set(validCartItems.map(item => item.productId || item.product?.id))];
         
         // Fetch product details
         if (productIds.length > 0) {
@@ -44,11 +94,23 @@ export default function CheckoutPage() {
           if (!articlesRes.ok) {
             throw new Error('Failed to fetch product details');
           }
-          const articlesData = await articlesRes.json();
+          const articlesResponse = await articlesRes.json();
+          
+          // Extract articles array from the API response
+          let articlesArray = [];
+          if (articlesResponse && Array.isArray(articlesResponse.articles)) {
+            articlesArray = articlesResponse.articles;
+          } else if (Array.isArray(articlesResponse)) {
+            // Handle case where API returns array directly (for backward compatibility)
+            articlesArray = articlesResponse;
+          } else {
+            console.error('Articles API returned invalid format:', articlesResponse);
+            articlesArray = [];
+          }
           
           // Convert to lookup object
           const articlesLookup = {};
-          articlesData.forEach(article => {
+          articlesArray.forEach(article => {
             articlesLookup[article.id] = article;
           });
           
@@ -63,12 +125,16 @@ export default function CheckoutPage() {
     };
 
     fetchCart();
-  }, [router]);
+  }, [companyId, router]);
 
   // Calculate total
   const calculateTotal = () => {
+    if (!Array.isArray(cart)) {
+      return "0.00";
+    }
     return cart.reduce((total, item) => {
-      const article = articles[item.productId];
+      const productId = item.productId || item.product?.id;
+      const article = articles[productId];
       if (article) {
         return total + (article.price * item.quantity);
       }
@@ -81,20 +147,32 @@ export default function CheckoutPage() {
     try {
       // Create line items for Stripe checkout
       const lineItems = cart.map(item => {
-        const article = articles[item.productId];
+        const productId = item.productId || item.product?.id;
+        const article = articles[productId];
         return {
-          productId: item.productId,
+          productId: productId,
           quantity: item.quantity,
           price: article.price
         };
       });
 
       // Create Stripe checkout session
-      const response = await apiClient.post("/stripe/create-cart-checkout", {
+      const endpoint = companyId
+        ? '/api/stripe/create-company-checkout'
+        : '/api/stripe/create-cart-checkout';
+      
+      const payload = {
         lineItems,
         successUrl: `${window.location.origin}/success`,
         cancelUrl: `${window.location.origin}/cart`,
-      });
+      };
+      
+      // Add companyId if buying for a company
+      if (companyId) {
+        payload.companyId = companyId;
+      }
+
+      const response = await apiClient.post(endpoint, payload);
 
       if (response.url) {
         // Redirect to Stripe checkout
@@ -121,7 +199,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (cart.length === 0) {
+  if (!Array.isArray(cart) || cart.length === 0) {
     return (
       <div className="container mx-auto px-4 py-20 min-h-screen">
         <Header />
@@ -145,7 +223,14 @@ export default function CheckoutPage() {
   return (
     <div className="container mx-auto px-4 py-20 min-h-screen">
       <Header />
-      <h1 className="text-3xl font-bold mt-16 mb-8">Finalisation de la commande</h1>
+      <h1 className="text-3xl font-bold mt-16 mb-8">
+        Finalisation de la commande
+        {company && (
+          <span className="text-xl font-normal ml-2 text-gray-600 dark:text-gray-400">
+            pour {company.name}
+          </span>
+        )}
+      </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -163,8 +248,9 @@ export default function CheckoutPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cart.map(item => {
-                    const article = articles[item.productId];
+                  {Array.isArray(cart) && cart.map(item => {
+                    const productId = item.productId || item.product?.id;
+                    const article = articles[productId];
                     
                     if (!article) {
                       return null; // Skip if article not found
@@ -183,6 +269,49 @@ export default function CheckoutPage() {
               </table>
             </div>
           </div>
+
+          {company && (
+            <div className="bg-base-100 dark:bg-gray-800 p-6 rounded-lg shadow mb-6">
+              <h2 className="text-xl font-semibold mb-4">Informations de l&apos;entreprise</h2>
+              
+              <div className="space-y-3">
+                <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                  <span className="font-medium text-gray-600 dark:text-gray-400 w-32">Nom:</span> 
+                  <span className="text-gray-800 dark:text-white">{company.name}</span>
+                </div>
+                {company.email && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">Email:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.email}</span>
+                  </div>
+                )}
+                {company.phone && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">Téléphone:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.phone}</span>
+                  </div>
+                )}
+                {company.address && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">Adresse:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.address}</span>
+                  </div>
+                )}
+                {company.vatNumber && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">N° TVA:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.vatNumber}</span>
+                  </div>
+                )}
+                {company.siretNumber && (
+                  <div className="flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <span className="font-medium text-gray-600 dark:text-gray-400 w-32">SIRET:</span> 
+                    <span className="text-gray-800 dark:text-white">{company.siretNumber}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="lg:col-span-1">
@@ -203,6 +332,11 @@ export default function CheckoutPage() {
                   <span>Total</span>
                   <span>{calculateTotal()} €</span>
                 </div>
+                {company && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    Facturation à: {company.name}
+                  </div>
+                )}
               </div>
             </div>
             

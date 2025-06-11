@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import BackgroundEffects from "@/app/components/BackgroundEffects";
+
 export default function NewUser() {
   const router = useRouter();
   const fileInputRef = useRef(null);
@@ -16,27 +18,8 @@ export default function NewUser() {
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
-  const [articles, setArticles] = useState([]);
-  const [selectedArticles, setSelectedArticles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    // Récupérer les articles disponibles
-    async function fetchArticles() {
-      try {
-        const response = await fetch('/api/admin/articles');
-        if (response.ok) {
-          const data = await response.json();
-          setArticles(data);
-        }
-      } catch (err) {
-        console.error("Erreur lors de la récupération des articles:", err);
-      }
-    }
-    
-    fetchArticles();
-  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,16 +27,6 @@ export default function NewUser() {
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleArticleSelection = (articleId) => {
-    setSelectedArticles(prev => {
-      if (prev.includes(articleId)) {
-        return prev.filter(id => id !== articleId);
-      } else {
-        return [...prev, articleId];
-      }
-    });
   };
 
   const handleFileChange = (e) => {
@@ -83,9 +56,6 @@ export default function NewUser() {
       formDataToSend.append('password', formData.password);
       formDataToSend.append('role', formData.role);
       
-      // Ajouter les articles sélectionnés
-      formDataToSend.append('articles', JSON.stringify(selectedArticles));
-      
       if (selectedFile) {
         formDataToSend.append('avatar', selectedFile);
       }
@@ -100,7 +70,7 @@ export default function NewUser() {
         throw new Error(errorData.message || 'Échec de la création de l\'utilisateur');
       }
 
-      router.push('/dashboard/admin');
+      router.push('/dashboard/admin/users');
       router.refresh();
     } catch (err) {
       setError(err.message);
@@ -110,188 +80,210 @@ export default function NewUser() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow-soft rounded-xl overflow-hidden transition-all duration-200">
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Nouvel utilisateur</h1>
+    <div className="min-h-screen relative overflow-hidden p-6">
+      <BackgroundEffects />
+      <div className="ios-container max-w-4xl mx-auto space-y-8 relative z-20">
+        {/* Header */}
+        <div className="flex items-center justify-between ios-fade-in">
+          <div>
+            <h1 className="ios-title text-4xl">
+              Nouvel Utilisateur
+            </h1>
+            <p className="ios-body text-lg mt-2">
+              Créer un nouveau compte utilisateur
+            </p>
+          </div>
           <Link 
-            href="/dashboard/admin" 
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            href="/dashboard/admin/users" 
+            className="ios-button-secondary"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Retour
           </Link>
         </div>
-      </div>
 
-      {error && (
-        <div className="bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 p-4 m-6 rounded" role="alert">
-          <p>{error}</p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="name">
-              Nom
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="shadow-sm bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 transition-colors"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="email">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="shadow-sm bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 transition-colors"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="password">
-              Mot de passe
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="shadow-sm bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 transition-colors"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Laissez vide pour les utilisateurs s&apos;authentifiant via des fournisseurs OAuth.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="role">
-              Rôle
-            </label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="shadow-sm bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 transition-colors"
-            >
-              <option value="USER">Utilisateur</option>
-              <option value="ADMIN">Administrateur</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Articles achetés
-          </label>
-          {articles.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400 text-sm italic">Aucun article disponible</p>
-          ) : (
-            <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-3 bg-white dark:bg-gray-700">
-              {articles.map(article => (
-                <div key={article.id} className="flex items-center mb-2 pb-2 border-b border-gray-100 dark:border-gray-600 last:border-0">
-                  <input
-                    type="checkbox"
-                    id={`article-${article.id}`}
-                    checked={selectedArticles.includes(article.id)}
-                    onChange={() => handleArticleSelection(article.id)}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500 rounded focus:ring-blue-500 transition-colors"
-                  />
-                  <label htmlFor={`article-${article.id}`} className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                    {article.title} 
-                    {article.price > 0 && <span className="text-gray-500 dark:text-gray-400 ml-2">({article.price.toFixed(2)} €)</span>}
-                  </label>
-                </div>
-              ))}
+        {error && (
+          <div className="ios-glass-light rounded-2xl p-6 border border-red-500/30 bg-red-500/10 ios-slide-up">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-red-300 font-medium">{error}</p>
             </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="avatar">
-            Photo de profil
-          </label>
-          <div className="flex items-center">
-            <input
-              type="file"
-              id="avatar"
-              name="avatar"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              accept="image/*"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current.click()}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Choisir un fichier
-            </button>
-            <span className="ml-3 text-sm text-gray-500 dark:text-gray-400">
-              {selectedFile ? selectedFile.name : 'Aucun fichier sélectionné'}
-            </span>
           </div>
-          
-          {imagePreview && (
-            <div className="mt-4">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Aperçu :</p>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden w-32 h-32 relative">
-                <Image 
-                  src={imagePreview} 
-                  alt="Aperçu" 
-                  className="w-full h-full object-cover"
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Informations de base */}
+          <div className="dashboard-card ios-slide-up">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              Informations de base
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3" htmlFor="name">
+                  Nom complet
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="ios-input w-full"
+                  placeholder="Entrez le nom complet"
                 />
               </div>
-            </div>
-          )}
-        </div>
 
-        <div className="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            type="button"
-            onClick={() => router.push('/dashboard/admin')}
-            className="mr-4 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 transition-colors"
-          >
-            Annuler
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3" htmlFor="email">
+                  Adresse email *
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="ios-input w-full"
+                  placeholder="exemple@email.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3" htmlFor="password">
+                  Mot de passe
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="ios-input w-full"
+                  placeholder="Mot de passe (optionnel)"
+                />
+                <p className="text-xs text-gray-600 dark:text-white/60 mt-2">
+                  Laissez vide pour les utilisateurs s&apos;authentifiant via des fournisseurs OAuth.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3" htmlFor="role">
+                  Rôle
+                </label>
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="ios-input w-full"
+                >
+                  <option value="USER">Utilisateur</option>
+                  <option value="ADMIN">Administrateur</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Photo de profil */}
+          <div className="dashboard-card ios-slide-up" style={{animationDelay: '0.1s'}}>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Création en cours...
-              </>
-            ) : 'Créer l\'utilisateur'}
-          </button>
-        </div>
-      </form>
+              </div>
+              Photo de profil
+            </h2>
+            
+            <div className="flex items-center gap-6">
+              <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-700 dark:bg-gray-600">
+                {imagePreview ? (
+                  <Image
+                    src={imagePreview}
+                    alt="Aperçu"
+                    className="w-full h-full object-cover"
+                    fill
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
+                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="ios-button-secondary"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Choisir une image
+                </button>
+                <p className="text-xs text-gray-600 dark:text-white/60 mt-2">
+                  Formats acceptés: JPG, PNG, GIF (max 5MB)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Boutons d'action */}
+          <div className="flex items-center gap-4 justify-end ios-slide-up" style={{animationDelay: '0.3s'}}>
+            <Link
+              href="/dashboard/admin/users"
+              className="ios-button-secondary"
+            >
+              Annuler
+            </Link>
+            <button
+              type="submit"
+              disabled={loading}
+              className="ios-button-primary"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Création...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Créer l&apos;utilisateur
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 } 
