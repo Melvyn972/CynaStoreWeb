@@ -15,38 +15,28 @@ export async function OPTIONS(request) {
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const ids = searchParams.get('ids');
-    const category = searchParams.get('category');
-    const search = searchParams.get('search');
+    const query = searchParams.get('q') || '';
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 10;
     
     let whereClause = {};
     
-    // Filter by IDs
-    if (ids) {
-      const idList = ids.split(',');
-      whereClause.id = {
-        in: idList,
-      };
-    }
-    
-    // Filter by category
-    if (category) {
-      whereClause.category = category;
-    }
-    
-    // Search - SQLite compatible
-    if (search) {
+    // Search functionality - SQLite compatible
+    if (query.trim()) {
       whereClause.OR = [
         {
           title: {
-            contains: search,
+            contains: query,
           },
         },
         {
           description: {
-            contains: search,
+            contains: query,
+          },
+        },
+        {
+          category: {
+            contains: query,
           },
         },
       ];
@@ -75,6 +65,7 @@ export async function GET(request) {
     
     return NextResponse.json({
       articles,
+      query,
       pagination: {
         page,
         limit,
@@ -84,36 +75,9 @@ export async function GET(request) {
       }
     }, { headers: corsHeaders });
   } catch (error) {
-    console.error('Failed to fetch articles:', error);
+    console.error('Failed to search articles:', error);
     return NextResponse.json(
-      { message: 'Failed to fetch articles' },
-      { status: 500, headers: corsHeaders }
-    );
-  }
-}
-
-// POST - Create a new article (admin only)
-export async function POST(request) {
-  try {
-    const { title, description, image, category, price } = await request.json();
-    
-    // TODO: Add authentication and authorization checks
-    
-    const article = await prisma.articles.create({
-      data: {
-        title,
-        description,
-        image,
-        category,
-        price,
-      },
-    });
-    
-    return NextResponse.json(article, { headers: corsHeaders });
-  } catch (error) {
-    console.error('Failed to create article:', error);
-    return NextResponse.json(
-      { message: 'Failed to create article' },
+      { message: 'Failed to search articles' },
       { status: 500, headers: corsHeaders }
     );
   }
