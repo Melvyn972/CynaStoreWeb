@@ -118,6 +118,11 @@ export async function DELETE(request, { params }) {
     // Check if the company exists
     const company = await prisma.company.findUnique({
       where: { id: companyId },
+      include: {
+        members: {
+          where: { userId: user.id }
+        }
+      }
     });
     
     if (!company) {
@@ -127,10 +132,14 @@ export async function DELETE(request, { params }) {
       );
     }
     
-    // Check if the user is the owner of the company
-    if (company.ownerId !== user.id) {
+    // Check if user is owner or admin
+    const isOwner = company.ownerId === user.id;
+    const memberRole = company.members[0]?.role;
+    const isAdmin = memberRole === "ADMIN";
+    
+    if (!isOwner && !isAdmin) {
       return NextResponse.json(
-        { error: "Seul le propriétaire de l'entreprise peut supprimer des membres" },
+        { error: "Vous devez être propriétaire ou administrateur pour supprimer des membres" },
         { status: 403 }
       );
     }

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
-import { sendEmail } from "@/libs/resend";
 import { v4 as uuidv4 } from "uuid";
 
 // Get all invitations for current user
@@ -60,7 +59,7 @@ export async function POST(request) {
         { status: 401 }
       );
     }
-    
+
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
@@ -71,7 +70,7 @@ export async function POST(request) {
         { status: 404 }
       );
     }
-    
+
     const { companyId, email, role } = await request.json();
     
     if (!companyId || !email) {
@@ -80,12 +79,15 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-    
-    // Check if the user is the owner of the company
+
+    // Check if the user has permission to invite (OWNER or ADMIN)
     const company = await prisma.company.findUnique({
       where: { id: companyId },
       include: {
-        owner: true
+        owner: true,
+        members: {
+          where: { userId: user.id }
+        }
       }
     });
     
@@ -96,87 +98,85 @@ export async function POST(request) {
       );
     }
     
-    if (company.ownerId !== user.id) {
+    // Check if user is owner or admin
+    const isOwner = company.ownerId === user.id;
+    const memberRole = company.members[0]?.role;
+    const isAdmin = memberRole === "ADMIN";
+    
+    if (!isOwner && !isAdmin) {
       return NextResponse.json(
-        { error: "Vous n'êtes pas autorisé à inviter des membres à cette entreprise" },
+        { error: "Vous devez être propriétaire ou administrateur pour inviter des membres" },
         { status: 403 }
       );
     }
-    
-    // Check if user already exists
-    let invitedUser = await prisma.user.findUnique({
+
+    // Verify that the invited user exists
+    const invitedUser = await prisma.user.findUnique({
       where: { email },
     });
     
+    if (!invitedUser) {
+      return NextResponse.json(
+        { error: "Aucun utilisateur trouvé avec cette adresse email. L'utilisateur doit avoir un compte pour être invité." },
+        { status: 404 }
+      );
+    }
+
     // Check if the user is already a member of the company
-    if (invitedUser) {
-      const existingMember = await prisma.companyMember.findUnique({
-        where: {
-          companyId_userId: {
-            companyId,
-            userId: invitedUser.id,
-          },
-        },
-      });
-      
-      if (existingMember) {
-        return NextResponse.json(
-          { error: "Cet utilisateur est déjà membre de l'entreprise" },
-          { status: 400 }
-        );
-      }
-      
-      // Check if there's already a pending invitation
-      const existingInvitation = await prisma.companyInvitation.findFirst({
-        where: {
+    const existingMember = await prisma.companyMember.findUnique({
+      where: {
+        companyId_userId: {
           companyId,
           userId: invitedUser.id,
-          status: "PENDING",
         },
-      });
-      
-      if (existingInvitation) {
-        return NextResponse.json(
-          { error: "Une invitation est déjà en attente pour cet utilisateur" },
-          { status: 400 }
-        );
-      }
-    }
-    
-    // Generate a unique token for the invitation
-    const token = uuidv4();
-    
-    // Create invitation
-    const invitation = await prisma.companyInvitation.create({
-      data: {
-        company: { connect: { id: companyId } },
-        user: invitedUser ? { connect: { id: invitedUser.id } } : undefined,
-        userId: invitedUser?.id || "", // We need to provide a value even if user doesn't exist yet
-        email,
-        role: role || "MEMBER",
-        token,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       },
     });
     
-    // Send invitation email
-    const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/companies/invitations/${token}`;
-    
-    await sendEmail({
-      to: email,
-      subject: `Invitation à rejoindre ${company.name} sur CynaStore`,
-      text: `Bonjour,\n\nVous avez été invité à rejoindre l'entreprise ${company.name} sur CynaStore par ${user.name || user.email}.\n\nPour accepter cette invitation, veuillez cliquer sur le lien suivant : ${invitationUrl}\n\nCe lien expirera dans 7 jours.\n\nCordialement,\nL'équipe CynaStore`,
-      html: `
-        <p>Bonjour,</p>
-        <p>Vous avez été invité à rejoindre l'entreprise <strong>${company.name}</strong> sur CynaStore par ${user.name || user.email}.</p>
-        <p>Pour accepter cette invitation, veuillez cliquer sur le bouton ci-dessous :</p>
-        <p><a href="${invitationUrl}" style="display: inline-block; background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accepter l'invitation</a></p>
-        <p>Ce lien expirera dans 7 jours.</p>
-        <p>Cordialement,<br>L'équipe CynaStore</p>
-      `,
+    if (existingMember) {
+      return NextResponse.json(
+        { error: "Cet utilisateur est déjà membre de l'entreprise" },
+        { status: 400 }
+      );
+    }
+
+    // Check if there's already a pending invitation
+    const existingInvitation = await prisma.companyInvitation.findFirst({
+      where: {
+        companyId,
+        userId: invitedUser.id,
+        status: "PENDING",
+      },
     });
     
-    return NextResponse.json({ success: true, invitation });
+    if (existingInvitation) {
+      return NextResponse.json(
+        { error: "Une invitation est déjà en attente pour cet utilisateur" },
+        { status: 400 }
+      );
+    }
+
+    // Generate a unique token for the invitation
+    const token = uuidv4();
+
+    // Create invitation
+    const invitation = await prisma.companyInvitation.create({
+      data: {
+        companyId: companyId,
+        userId: invitedUser.id,
+        email: email,
+        role: role || "MEMBER",
+        token: token,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      },
+    });
+
+    console.log(`✅ Invitation created: ${invitedUser.email} invited to ${company.name}`);
+    
+    return NextResponse.json({ 
+      success: true, 
+      invitation,
+      message: `Invitation envoyée à ${invitedUser.name || invitedUser.email}. L'utilisateur pourra voir et gérer cette invitation dans son tableau de bord.`
+    });
   } catch (error) {
     console.error("Error creating invitation:", error);
     return NextResponse.json(
@@ -209,11 +209,12 @@ export async function PATCH(request) {
       );
     }
     
-    const { token, action } = await request.json();
+    // MODIFICATION: Accepter invitationId au lieu de token
+    const { invitationId, action } = await request.json();
     
-    if (!token || !action) {
+    if (!invitationId || !action) {
       return NextResponse.json(
-        { error: "Le token et l'action sont requis" },
+        { error: "L'ID de l'invitation et l'action sont requis" },
         { status: 400 }
       );
     }
@@ -225,9 +226,9 @@ export async function PATCH(request) {
       );
     }
     
-    // Find the invitation
+    // Find the invitation by ID instead of token
     const invitation = await prisma.companyInvitation.findUnique({
-      where: { token },
+      where: { id: invitationId },
       include: {
         company: true,
       },
@@ -254,10 +255,18 @@ export async function PATCH(request) {
     }
     
     // Check if invitation is for this user
-    if (invitation.email !== user.email) {
+    if (invitation.userId !== user.id) {
       return NextResponse.json(
-        { error: "Cette invitation n'est pas destinée à votre compte" },
+        { error: "Cette invitation ne vous est pas destinée" },
         { status: 403 }
+      );
+    }
+    
+    // Check if invitation is still pending
+    if (invitation.status !== "PENDING") {
+      return NextResponse.json(
+        { error: "Cette invitation a déjà été traitée" },
+        { status: 400 }
       );
     }
     
@@ -297,14 +306,13 @@ export async function PATCH(request) {
       await prisma.companyInvitation.update({
         where: { id: invitation.id },
         data: { 
-          status: "ACCEPTED",
-          userId: user.id // Update with the real user ID
+          status: "ACCEPTED"
         },
       });
       
       return NextResponse.json({
         success: true,
-        message: "Vous avez rejoint l'entreprise avec succès",
+        message: `Vous avez rejoint l'entreprise ${invitation.company.name} avec succès`,
         company: invitation.company,
       });
     } else {
@@ -312,14 +320,13 @@ export async function PATCH(request) {
       await prisma.companyInvitation.update({
         where: { id: invitation.id },
         data: { 
-          status: "DECLINED",
-          userId: user.id // Update with the real user ID
+          status: "DECLINED"
         },
       });
       
       return NextResponse.json({
         success: true,
-        message: "Vous avez refusé l'invitation",
+        message: `Vous avez refusé l'invitation à rejoindre ${invitation.company.name}`,
       });
     }
   } catch (error) {

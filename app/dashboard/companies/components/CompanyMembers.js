@@ -5,9 +5,13 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
-export default function CompanyMembers({ members, isOwner, currentUserId, companyId, pendingInvitations }) {
+export default function CompanyMembers({ members, isOwner, isAdmin, currentUserId, companyId, pendingInvitations }) {
   const [removingMemberId, setRemovingMemberId] = useState(null);
+  const [updatingRoleId, setUpdatingRoleId] = useState(null);
   const router = useRouter();
+
+  // Can manage if user is owner or admin
+  const canManageMembers = isOwner || isAdmin;
 
   const handleRemoveMember = async (memberId) => {
     setRemovingMemberId(memberId);
@@ -32,6 +36,33 @@ export default function CompanyMembers({ members, isOwner, currentUserId, compan
       toast.error(error.message || "Erreur lors de la suppression du membre");
     } finally {
       setRemovingMemberId(null);
+    }
+  };
+
+  const handleUpdateRole = async (memberId, newRole) => {
+    setUpdatingRoleId(memberId);
+    try {
+      const response = await fetch(`/api/companies/${companyId}/members/${memberId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Erreur lors de la mise à jour du rôle");
+      }
+
+      const data = await response.json();
+      toast.success(data.message);
+      router.refresh();
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast.error(error.message || "Erreur lors de la mise à jour du rôle");
+    } finally {
+      setUpdatingRoleId(null);
     }
   };
 
@@ -74,7 +105,7 @@ export default function CompanyMembers({ members, isOwner, currentUserId, compan
                 <th className="bg-base-200 dark:bg-gray-700">Utilisateur</th>
                 <th className="bg-base-200 dark:bg-gray-700">Rôle</th>
                 <th className="bg-base-200 dark:bg-gray-700">Depuis</th>
-                {isOwner && <th className="bg-base-200 dark:bg-gray-700 text-right">Actions</th>}
+                {canManageMembers && <th className="bg-base-200 dark:bg-gray-700 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -105,14 +136,29 @@ export default function CompanyMembers({ members, isOwner, currentUserId, compan
                     </div>
                   </td>
                   <td>
-                    <span className={`badge ${member.role === 'OWNER' ? 'badge-secondary' : member.role === 'ADMIN' ? 'badge-primary' : 'badge-ghost'}`}>
-                      {member.role === 'OWNER' ? 'Propriétaire' : member.role === 'ADMIN' ? 'Administrateur' : 'Membre'}
-                    </span>
+                    {canManageMembers && member.role !== 'OWNER' && member.user.id !== currentUserId ? (
+                      <select 
+                        className={`select select-sm ${member.role === 'ADMIN' ? 'select-primary' : 'select-ghost'}`}
+                        value={member.role}
+                        onChange={(e) => handleUpdateRole(member.id, e.target.value)}
+                        disabled={updatingRoleId === member.id}
+                      >
+                        <option value="MEMBER">Membre</option>
+                        <option value="ADMIN">Administrateur</option>
+                      </select>
+                    ) : (
+                      <span className={`badge ${member.role === 'OWNER' ? 'badge-secondary' : member.role === 'ADMIN' ? 'badge-primary' : 'badge-ghost'}`}>
+                        {member.role === 'OWNER' ? 'Propriétaire' : member.role === 'ADMIN' ? 'Administrateur' : 'Membre'}
+                      </span>
+                    )}
+                    {updatingRoleId === member.id && (
+                      <span className="loading loading-spinner loading-xs ml-2"></span>
+                    )}
                   </td>
                   <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
-                  {isOwner && (
+                  {canManageMembers && (
                     <td className="text-right">
-                      {member.user.id !== currentUserId && (
+                      {member.user.id !== currentUserId && member.role !== 'OWNER' && (
                         <button 
                           className="btn btn-error btn-sm" 
                           onClick={() => handleRemoveMember(member.id)}
@@ -134,9 +180,12 @@ export default function CompanyMembers({ members, isOwner, currentUserId, compan
         </div>
 
         {/* Pending invitations section */}
-        {isOwner && pendingInvitations.length > 0 && (
+        {canManageMembers && pendingInvitations.length > 0 && (
           <div className="mt-8">
-            <h3 className="font-bold text-lg mb-4">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
               Invitations en attente ({pendingInvitations.length})
             </h3>
             <div className="overflow-x-auto">

@@ -42,8 +42,10 @@ export default async function CompanyDetailsPage({ params }) {
     redirect("/dashboard/companies");
   }
 
-  // Determine if user is owner
+  // Determine user role and permissions
   const isOwner = company.ownerId === user.id;
+  const currentRole = isOwner ? "OWNER" : membership?.role || "MEMBER";
+  const isAdmin = currentRole === "ADMIN";
 
   // Get company purchases
   const purchases = await prisma.companyPurchase.findMany({
@@ -106,9 +108,11 @@ export default async function CompanyDetailsPage({ params }) {
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   isOwner 
                     ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
-                    : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    : currentRole === 'ADMIN'
+                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
                 }`}>
-                  {isOwner ? '👑 Propriétaire' : '👤 Membre'}
+                  {isOwner ? '👑 Propriétaire' : currentRole === 'ADMIN' ? '🔧 Administrateur' : '👤 Membre'}
                 </span>
                 <span className="ios-body">
                   {members.length} membre{members.length > 1 ? 's' : ''}
@@ -218,13 +222,18 @@ export default async function CompanyDetailsPage({ params }) {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="ios-slide-up" style={{animationDelay: '0.1s'}}>
-            <CompanyActions
-              company={company}
-              isOwner={isOwner}
-              pendingInvitations={pendingInvitations}
-            />
+          {/* Actions et détails */}
+          <div className="ios-grid-2">
+            {/* Actions */}
+            <div className="ios-slide-up" style={{animationDelay: '0.1s'}}>
+              <CompanyActions
+                company={company}
+                isOwner={isOwner}
+                isAdmin={isAdmin}
+                currentRole={currentRole}
+                pendingInvitations={pendingInvitations}
+              />
+            </div>
           </div>
         </div>
 
@@ -238,6 +247,7 @@ export default async function CompanyDetailsPage({ params }) {
           <CompanyMembers
             members={members}
             isOwner={isOwner}
+            isAdmin={isAdmin}
             currentUserId={user.id}
             companyId={company.id}
             pendingInvitations={pendingInvitations}

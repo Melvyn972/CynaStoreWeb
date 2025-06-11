@@ -48,7 +48,8 @@ export default function InviteMemberPage({ params }) {
         throw new Error(data.error || "Erreur lors de l'envoi de l'invitation");
       }
 
-      toast.success("Invitation envoyée avec succès");
+      const data = await response.json();
+      toast.success(data.message || "Invitation envoyée avec succès");
       setFormData({ email: "", role: "MEMBER" });
 
     } catch (error) {
@@ -98,12 +99,29 @@ export default function InviteMemberPage({ params }) {
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Envoyer une invitation</h2>
-              <p className="ios-body">Invitez un nouvel utilisateur à rejoindre votre entreprise</p>
+              <h2 className="text-2xl font-bold text-white">Inviter un membre existant</h2>
+              <p className="ios-body">Invitez un utilisateur qui a déjà un compte CynaStore à rejoindre votre entreprise</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Notification importante */}
+            <div className="ios-glass-light rounded-2xl p-6 border-l-4 border-blue-400">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-white font-medium mb-2">Nouveau fonctionnement des invitations</h4>
+                  <p className="text-white/80 text-sm">
+                    Les invitations n'envoient plus d'emails automatiques. L'utilisateur invité verra l'invitation directement dans son tableau de bord et pourra l'accepter ou la refuser en un clic.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Informations du membre */}
             <div className="ios-glass-light rounded-2xl p-6 space-y-6">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
@@ -128,7 +146,7 @@ export default function InviteMemberPage({ params }) {
                   required
                 />
                 <p className="mt-2 text-white/60 text-sm">
-                  Un email d&apos;invitation sera envoyé à cette adresse
+                  ⚠️ <strong>Important :</strong> L'utilisateur doit déjà avoir un compte sur CynaStore pour pouvoir être invité. L'invitation apparaîtra dans son tableau de bord.
                 </p>
               </div>
 
@@ -196,6 +214,7 @@ export default function InviteMemberPage({ params }) {
                 </svg>
                 Annuler
               </Link>
+              
               <button
                 type="submit"
                 className="ios-button-primary"

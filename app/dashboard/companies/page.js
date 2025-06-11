@@ -3,6 +3,7 @@ import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
 import Link from "next/link";
 import BackgroundEffects from "@/app/components/BackgroundEffects";
+import InvitationActions from "@/components/InvitationActions";
 
 export const dynamic = "force-dynamic";
 
@@ -96,24 +97,7 @@ export default async function CompaniesPage() {
             
             <div className="ios-grid-2">
               {pendingInvitations.map((invitation) => (
-                <div key={invitation.id} className="ios-glass-light rounded-2xl p-6 hover:bg-white/20 transition-all group">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                    {invitation.company.name}
-                  </h3>
-                  <p className="ios-body mb-4">
-                    Vous avez été invité à rejoindre cette entreprise.
-                  </p>
-                  <Link 
-                    href={`/dashboard/companies/invitations/${invitation.token}`}
-                    className="ios-button-primary w-full"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 616 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    Voir l&apos;invitation
-                  </Link>
-                </div>
+                <InvitationActions key={invitation.id} invitation={invitation} />
               ))}
             </div>
           </div>
@@ -143,15 +127,15 @@ export default async function CompaniesPage() {
             <div className="dashboard-stat-label">Créées</div>
           </div>
 
-          {/* Entreprises rejointes */}
+          {/* Invitations */}
           <div className="dashboard-card text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
             </div>
-            <div className="dashboard-stat-value text-4xl mb-2">{memberCompanies.length}</div>
-            <div className="dashboard-stat-label">Rejointes</div>
+            <div className="dashboard-stat-value text-4xl mb-2">{pendingInvitations.length}</div>
+            <div className="dashboard-stat-label">Invitations</div>
           </div>
         </div>
 
