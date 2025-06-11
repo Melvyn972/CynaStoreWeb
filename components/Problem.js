@@ -18,7 +18,7 @@ const ProblemCard = ({ number, title, description }) => {
 
 const Problem = () => {
   return (
-    <section className="relative bg-gray-50 dark:bg-gray-950 py-24 md:py-32 overflow-hidden">
+    <section id="problem" className="relative bg-gray-50 dark:bg-gray-950 py-24 md:py-32 overflow-hidden">
       {/* Effets de lumière flottants */}
       <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-purple-500/20 dark:bg-purple-500/20 blur-3xl animate-float"></div>
       <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-indigo-500/15 dark:bg-indigo-500/15 blur-3xl animate-float" style={{animationDelay: '2s'}}></div>

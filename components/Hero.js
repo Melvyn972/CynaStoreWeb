@@ -4,6 +4,31 @@ import Image from "next/image";
 import Link from "next/link";
 
 const Hero = () => {
+  const scrollToNextSection = (e) => {
+    // Feedback visuel du clic
+    e.target.closest('button').style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      e.target.closest('button').style.transform = '';
+    }, 150);
+
+    // Option 1: Chercher la section Problem spécifiquement
+    const problemSection = document.querySelector('#problem');
+    if (problemSection) {
+      problemSection.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+      return;
+    }
+
+    // Option 2: Défiler d'une hauteur d'écran vers le bas
+    const viewportHeight = window.innerHeight;
+    window.scrollTo({
+      top: viewportHeight,
+      behavior: 'smooth'
+    });
+  };
+
   return (
     <section className="relative w-full min-h-[120vh] flex flex-col items-center justify-center overflow-hidden ios-hero-section pb-32">
       {/* Fond animé avec dégradés iOS 16 adaptatif */}
@@ -155,15 +180,21 @@ const Hero = () => {
       </div>
       
       {/* Indicateur de scroll */}
-      <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 ios-fade-in z-20" style={{animationDelay: '1.5s'}}>
-        <div className="flex flex-col items-center gap-3 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white/80 transition-colors cursor-pointer group">
-          <span className="text-sm font-medium">Faire défiler pour découvrir</span>
-          <div className="p-3 rounded-full ios-glass-light group-hover:bg-white/20 transition-all duration-300">
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 ios-fade-in z-20" style={{animationDelay: '1.5s'}}>
+        <button 
+          onClick={scrollToNextSection}
+          className="flex flex-col items-center gap-3 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white/80 transition-all duration-300 cursor-pointer group bg-transparent border-none active:scale-95"
+          aria-label="Défiler vers la section suivante"
+        >
+          <span className="text-sm font-medium group-hover:font-semibold transition-all">
+            👇 Défiler vers le bas
+          </span>
+          <div className="p-4 rounded-full ios-glass-light group-hover:bg-white/30 group-hover:scale-110 group-active:scale-95 transition-all duration-300 shadow-lg">
             <svg className="w-6 h-6 animate-bounce group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           </div>
-        </div>
+        </button>
       </div>
     </section>
   );
