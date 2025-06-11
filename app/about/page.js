@@ -33,7 +33,7 @@ export default function AboutPage() {
           {/* Contenu principal */}
           <div className="max-w-4xl mx-auto">
             {/* Header */}
-            <div className="text-center mb-12 ios-fade-in">
+            <div className="text-center mb-16 ios-fade-in">
               <h1 className="ios-title text-4xl md:text-5xl mb-6">
                 À propos de {config.appName}
               </h1>
@@ -46,7 +46,7 @@ export default function AboutPage() {
             </div>
 
             {/* Mission */}
-            <div className="dashboard-card ios-slide-up mb-8">
+            <div className="dashboard-card ios-slide-up mb-12">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-center gap-3">
                   <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
@@ -98,7 +98,7 @@ export default function AboutPage() {
             </div>
 
             {/* Équipe */}
-            <div className="dashboard-card ios-slide-up" style={{animationDelay: '0.1s'}}>
+            <div className="dashboard-card ios-slide-up mb-12" style={{animationDelay: '0.1s'}}>
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-center gap-3">
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
