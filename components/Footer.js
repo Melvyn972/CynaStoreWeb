@@ -122,6 +122,9 @@ const Footer = () => {
             <Link href="/tos" className="text-sm dark:text-gray-400 text-gray-600 dark:hover:text-white hover:text-gray-900 transition-colors">
               Conditions d&apos;utilisation
             </Link>
+            <Link href="/legal-mentions" className="text-sm dark:text-gray-400 text-gray-600 dark:hover:text-white hover:text-gray-900 transition-colors">
+              Mentions légales
+            </Link>
           </div>
         </div>
       </div>

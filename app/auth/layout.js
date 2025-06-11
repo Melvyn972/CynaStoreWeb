@@ -52,6 +52,7 @@ export default async function AuthLayout({ children }) {
             <div className="flex gap-6">
               <Link href="/privacy-policy" className="dark:hover:text-white hover:text-gray-800 transition-colors">Politique de confidentialité</Link>
               <Link href="/tos" className="dark:hover:text-white hover:text-gray-800 transition-colors">Conditions d&apos;utilisation</Link>
+              <Link href="/legal-mentions" className="dark:hover:text-white hover:text-gray-800 transition-colors">Mentions légales</Link>
             </div>
           </div>
         </footer>
