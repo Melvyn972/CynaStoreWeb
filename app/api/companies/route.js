@@ -1,30 +1,29 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/libs/next-auth";
+import { getAuthenticatedUser } from "@/libs/auth-middleware";
 import prisma from "@/libs/prisma";
 // Supprimez l'import de sendEmail s'il est présent
 // import { sendEmail } from "@/libs/resend";
 
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
 // Get all companies for the current user
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await getAuthenticatedUser(request);
 
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -54,12 +53,12 @@ export async function GET(request) {
         })),
     ];
 
-    return NextResponse.json(companies);
+    return NextResponse.json({ companies }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error fetching companies:", error);
     return NextResponse.json(
       { error: "Erreur lors de la récupération des entreprises" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -67,23 +66,12 @@ export async function GET(request) {
 // Create a new company
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await getAuthenticatedUser(request);
 
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -92,7 +80,7 @@ export async function POST(request) {
     if (!data.name) {
       return NextResponse.json(
         { error: "Le nom de l'entreprise est requis" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -121,12 +109,12 @@ export async function POST(request) {
       },
     });
 
-    return NextResponse.json(company);
+    return NextResponse.json(company, { headers: corsHeaders });
   } catch (error) {
     console.error("Error creating company:", error);
     return NextResponse.json(
       { error: "Erreur lors de la création de l'entreprise" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -134,23 +122,12 @@ export async function POST(request) {
 // Delete a company
 export async function DELETE(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
-    
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
     
@@ -159,7 +136,7 @@ export async function DELETE(request) {
     if (!id) {
       return NextResponse.json(
         { error: "L'ID de l'entreprise est requis" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
@@ -171,14 +148,14 @@ export async function DELETE(request) {
     if (!company) {
       return NextResponse.json(
         { error: "Entreprise non trouvée" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
     if (company.ownerId !== user.id) {
       return NextResponse.json(
         { error: "Vous n'êtes pas autorisé à supprimer cette entreprise" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
     
@@ -187,12 +164,12 @@ export async function DELETE(request) {
       where: { id },
     });
     
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error deleting company:", error);
     return NextResponse.json(
       { error: "Erreur lors de la suppression de l'entreprise" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 
