@@ -1,29 +1,40 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/libs/next-auth';
+import { getAuthenticatedUser } from '@/libs/auth-middleware';
 import prisma from '@/libs/prisma';
 
-export async function GET() {
-  try {
-    // Vérification de la session
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Non autorisé' }, 
-        { status: 401 }
-      );
-    }
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
 
-    // Récupération de l'utilisateur
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
+export async function GET(request) {
+  try {
+    // Try mobile auth first, then web auth
+    let user = await getAuthenticatedUser(request);
+    
+    if (!user) {
+      // Fallback to NextAuth session for web app
+      const session = await getServerSession(authOptions);
+      if (session?.user?.email) {
+        user = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true, email: true }
+        });
+      }
+    }
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Utilisateur non trouvé' }, 
-        { status: 404 }
+        { error: 'Non autorisé' }, 
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -94,13 +105,13 @@ export async function GET() {
       orders,
       stats,
       success: true
-    });
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error('Erreur lors de la récupération des commandes utilisateur:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' }, 
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 
