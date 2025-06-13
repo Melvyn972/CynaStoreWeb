@@ -1,25 +1,34 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/libs/next-auth";
+import { getAuthenticatedUser } from "@/libs/auth-middleware";
 import prisma from "@/libs/prisma";
+
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
 
 // Get current consent settings
 export async function GET(request) {
-  console.log(request);
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getAuthenticatedUser(request);
     
     // Check if user is authenticated
-    if (!session || !session.user) {
+    if (!user) {
       return NextResponse.json(
         { error: "Non autorisé. Veuillez vous connecter." },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
     
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    // Get user consent data from database
+    const userData = await prisma.user.findUnique({
+      where: { id: user.id },
       select: {
         id: true,
         consentMarketing: true,
@@ -29,40 +38,40 @@ export async function GET(request) {
       },
     });
     
-    if (!user) {
+    if (!userData) {
       return NextResponse.json(
         { error: "Utilisateur non trouvé." },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
     // Get consent history for the user
     const consentHistory = await prisma.consentHistory.findMany({
-      where: { userId: user.id },
+      where: { userId: userData.id },
       orderBy: { timestamp: 'desc' },
       take: 50, // Get the latest 50 records
     });
     
     // Format consent data
     const consent = {
-      marketing: user.consentMarketing,
-      analytics: user.consentAnalytics,
-      thirdParty: user.consentThirdParty,
+      marketing: userData.consentMarketing,
+      analytics: userData.consentAnalytics,
+      thirdParty: userData.consentThirdParty,
     };
     
     // Return consent data and history
     return NextResponse.json({
       consent,
-      dataRetentionPeriod: user.dataRetentionPeriod,
+      dataRetentionPeriod: userData.dataRetentionPeriod,
       history: consentHistory
-    }, { status: 200 });
+    }, { status: 200, headers: corsHeaders });
     
   } catch (error) {
     console.error("Error retrieving consent settings:", error);
     
     return NextResponse.json(
       { error: "Une erreur s'est produite lors de la récupération des préférences de consentement." },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -70,34 +79,35 @@ export async function GET(request) {
 // Update consent settings
 export async function PUT(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getAuthenticatedUser(request);
     
     // Check if user is authenticated
-    if (!session || !session.user) {
+    if (!user) {
       return NextResponse.json(
         { error: "Non autorisé. Veuillez vous connecter." },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
     
     // Parse request body
     const { consent, dataRetentionPeriod } = await request.json();
     
-    // Get the user from the database
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    // Get the current user data from the database
+    const userData = await prisma.user.findUnique({
+      where: { id: user.id },
       select: {
         id: true,
         consentMarketing: true,
         consentAnalytics: true,
         consentThirdParty: true,
+        dataRetentionPeriod: true,
       }
     });
     
-    if (!user) {
+    if (!userData) {
       return NextResponse.json(
         { error: "Utilisateur non trouvé." },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -109,9 +119,9 @@ export async function PUT(request) {
     // Create history entries for any changed consents
     const historyEntries = [];
     
-    if (user.consentMarketing !== consent.marketing) {
+    if (userData.consentMarketing !== consent.marketing) {
       historyEntries.push({
-        userId: user.id,
+        userId: userData.id,
         consentType: "marketing",
         status: consent.marketing,
         ipAddress,
@@ -119,9 +129,9 @@ export async function PUT(request) {
       });
     }
     
-    if (user.consentAnalytics !== consent.analytics) {
+    if (userData.consentAnalytics !== consent.analytics) {
       historyEntries.push({
-        userId: user.id,
+        userId: userData.id,
         consentType: "analytics",
         status: consent.analytics,
         ipAddress,
@@ -129,9 +139,9 @@ export async function PUT(request) {
       });
     }
     
-    if (user.consentThirdParty !== consent.thirdParty) {
+    if (userData.consentThirdParty !== consent.thirdParty) {
       historyEntries.push({
-        userId: user.id,
+        userId: userData.id,
         consentType: "thirdParty",
         status: consent.thirdParty,
         ipAddress,
@@ -143,12 +153,12 @@ export async function PUT(request) {
     await prisma.$transaction([
       // Update user consent settings
       prisma.user.update({
-        where: { email: session.user.email },
+        where: { id: user.id },
         data: {
           consentMarketing: consent.marketing,
           consentAnalytics: consent.analytics,
           consentThirdParty: consent.thirdParty,
-          dataRetentionPeriod: dataRetentionPeriod || user.dataRetentionPeriod,
+          dataRetentionPeriod: dataRetentionPeriod || userData.dataRetentionPeriod,
         },
       }),
       // Create history records for each changed consent
@@ -162,9 +172,9 @@ export async function PUT(request) {
       { 
         message: "Préférences de consentement mises à jour avec succès",
         consent,
-        dataRetentionPeriod,
+        dataRetentionPeriod: dataRetentionPeriod || userData.dataRetentionPeriod,
       },
-      { status: 200 }
+      { status: 200, headers: corsHeaders }
     );
     
   } catch (error) {
@@ -172,7 +182,7 @@ export async function PUT(request) {
     
     return NextResponse.json(
       { error: "Une erreur s'est produite lors de la mise à jour des préférences de consentement." },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 

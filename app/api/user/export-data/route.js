@@ -1,24 +1,33 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/libs/next-auth";
+import { getAuthenticatedUser } from "@/libs/auth-middleware";
 import prisma from "@/libs/prisma";
 
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
 export async function GET(request) {
-  console.log(request);
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getAuthenticatedUser(request);
     
     // Check if user is authenticated
-    if (!session || !session.user) {
+    if (!user) {
       return NextResponse.json(
         { error: "Non autorisé. Veuillez vous connecter." },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
     
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    // Get user data from database
+    const userData = await prisma.user.findUnique({
+      where: { id: user.id },
       select: {
         id: true,
         name: true,
@@ -46,27 +55,27 @@ export async function GET(request) {
       },
     });
     
-    if (!user) {
+    if (!userData) {
       return NextResponse.json(
         { error: "Utilisateur non trouvé." },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
     // Format user data for export
-    const userData = {
+    const exportData = {
       personalInformation: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        profileImage: user.image,
-        accountCreated: user.createdAt,
-        lastUpdated: user.updatedAt,
-        role: user.role,
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        address: userData.address,
+        profileImage: userData.image,
+        accountCreated: userData.createdAt,
+        lastUpdated: userData.updatedAt,
+        role: userData.role,
       },
-      purchases: user.purchases.map(purchase => ({
+      purchases: userData.purchases.map(purchase => ({
         date: purchase.purchaseDate,
         article: {
           id: purchase.article.id,
@@ -80,14 +89,14 @@ export async function GET(request) {
     };
     
     // Return user data
-    return NextResponse.json(userData, { status: 200 });
+    return NextResponse.json(exportData, { status: 200, headers: corsHeaders });
     
   } catch (error) {
     console.error("Error exporting user data:", error);
     
     return NextResponse.json(
       { error: "Une erreur s'est produite lors de l'exportation des données." },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 

@@ -8,7 +8,7 @@ import BackgroundEffects from "@/app/components/BackgroundEffects";
 const ArticlesClient = ({ articles: initialArticles }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
   const [sortBy, setSortBy] = useState("name");
 
   // Récupérer toutes les catégories uniques
@@ -116,13 +116,13 @@ const ArticlesClient = ({ articles: initialArticles }) => {
                   <input
                     type="range"
                     min="0"
-                    max="1000"
-                    step="10"
+                    max="10000"
+                    step="100"
                     value={priceRange[1]}
                     onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                     style={{
-                      background: `linear-gradient(to right, #8B5CF6 0%, #8B5CF6 ${(priceRange[1] / 1000) * 100}%, #374151 ${(priceRange[1] / 1000) * 100}%, #374151 100%)`
+                      background: `linear-gradient(to right, #8B5CF6 0%, #8B5CF6 ${(priceRange[1] / 10000) * 100}%, #374151 ${(priceRange[1] / 10000) * 100}%, #374151 100%)`
                     }}
                   />
                   <div className="flex justify-between text-sm text-black/60 dark:text-white/60">
@@ -151,7 +151,7 @@ const ArticlesClient = ({ articles: initialArticles }) => {
                 onClick={() => {
                   setSearchTerm("");
                   setSelectedCategory("Tous");
-                  setPriceRange([0, 1000]);
+                  setPriceRange([0, 10000]);
                   setSortBy("name");
                 }}
                 className="w-full ios-button-secondary justify-center"
@@ -265,7 +265,7 @@ const ArticlesClient = ({ articles: initialArticles }) => {
                     onClick={() => {
                       setSearchTerm("");
                       setSelectedCategory("Tous");
-                      setPriceRange([0, 1000]);
+                      setPriceRange([0, 10000]);
                       setSortBy("name");
                     }}
                     className="mt-6 ios-button-primary"

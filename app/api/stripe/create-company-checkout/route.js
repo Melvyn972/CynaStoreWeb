@@ -1,30 +1,29 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/libs/next-auth";
+import { getAuthenticatedUser } from "@/libs/auth-middleware";
 import prisma from "@/libs/prisma";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
-    
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
     
@@ -33,7 +32,7 @@ export async function POST(request) {
     if (!companyId || !lineItems || !lineItems.length || !successUrl || !cancelUrl) {
       return NextResponse.json(
         { error: "Paramètres manquants" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
@@ -50,7 +49,7 @@ export async function POST(request) {
     if (!isMember) {
       return NextResponse.json(
         { error: "Vous n'êtes pas autorisé à effectuer des achats pour cette entreprise" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
     
@@ -62,7 +61,7 @@ export async function POST(request) {
     if (!company) {
       return NextResponse.json(
         { error: "Entreprise non trouvée" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
@@ -98,7 +97,7 @@ export async function POST(request) {
     if (stripeLineItems.length === 0) {
       return NextResponse.json(
         { error: "Aucun article valide dans le panier" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
@@ -119,12 +118,12 @@ export async function POST(request) {
       },
     });
     
-    return NextResponse.json({ url: stripeSession.url });
+    return NextResponse.json({ url: stripeSession.url }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error creating company checkout session:", error);
     return NextResponse.json(
       { error: "Erreur lors de la création de la session de paiement" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 
