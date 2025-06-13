@@ -48,14 +48,38 @@ export async function GET(request, { params }) {
       },
     });
     
-    if (!isMember && company.ownerId !== user.id) {
+    // Determine user role
+    let userRole = null;
+    if (company.ownerId === user.id) {
+      userRole = 'owner';
+    } else if (isMember) {
+      userRole = isMember.role.toLowerCase();
+    }
+    
+    if (!userRole) {
       return NextResponse.json(
         { error: "Vous n'êtes pas autorisé à voir cette entreprise" },
         { status: 403, headers: corsHeaders }
       );
     }
     
-    return NextResponse.json(company, { headers: corsHeaders });
+    // Format company data for mobile app
+    const companyData = {
+      id: company.id,
+      name: company.name,
+      description: company.description,
+      address: company.address,
+      phone: company.phone,
+      email: company.email,
+      website: company.website,
+      tva: company.vatNumber,
+      siret: company.siretNumber,
+      createdAt: company.createdAt,
+      updatedAt: company.updatedAt,
+      role: userRole,
+    };
+    
+    return NextResponse.json({ company: companyData }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error fetching company:", error);
     return NextResponse.json(
@@ -117,12 +141,36 @@ export async function PUT(request, { params }) {
         phone: data.phone,
         email: data.email,
         website: data.website,
-        vatNumber: data.vatNumber,
-        siretNumber: data.siretNumber,
+        vatNumber: data.tva,
+        siretNumber: data.siret,
       },
     });
     
-    return NextResponse.json(updatedCompany, { headers: corsHeaders });
+    // Determine user role
+    let userRole = null;
+    if (company.ownerId === user.id) {
+      userRole = 'owner';
+    } else if (member) {
+      userRole = member.role.toLowerCase();
+    }
+    
+    // Format response for mobile app
+    const formattedCompany = {
+      id: updatedCompany.id,
+      name: updatedCompany.name,
+      description: updatedCompany.description,
+      address: updatedCompany.address,
+      phone: updatedCompany.phone,
+      email: updatedCompany.email,
+      website: updatedCompany.website,
+      tva: updatedCompany.vatNumber,
+      siret: updatedCompany.siretNumber,
+      createdAt: updatedCompany.createdAt,
+      updatedAt: updatedCompany.updatedAt,
+      role: userRole,
+    };
+    
+    return NextResponse.json({ company: formattedCompany }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error updating company:", error);
     return NextResponse.json(

@@ -1,31 +1,35 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/libs/next-auth";
+import { getAuthenticatedUser } from "@/libs/auth-middleware";
 import prisma from "@/libs/prisma";
 import { v4 as uuidv4 } from "uuid";
+
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
 
 // Get all invitations for current user
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
-    
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
+    
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page")) || 1;
+    const limit = parseInt(searchParams.get("limit")) || 10;
+    const offset = (page - 1) * limit;
     
     // Get pending invitations for the user
     const invitations = await prisma.companyInvitation.findMany({
@@ -34,16 +38,53 @@ export async function GET(request) {
         status: "PENDING"
       },
       include: {
-        company: true
+        company: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          }
+        }
+      },
+      skip: offset,
+      take: limit,
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Format invitations for mobile app
+    const formattedInvitations = invitations.map(invitation => ({
+      id: invitation.id,
+      companyName: invitation.company.name,
+      companyId: invitation.company.id,
+      inviterName: 'Administrateur', // Could be enhanced to include actual inviter name
+      role: invitation.role.toLowerCase(),
+      message: invitation.message || '',
+      receivedAt: invitation.createdAt,
+      expiresAt: invitation.expiresAt,
+    }));
+
+    // Get total count for pagination
+    const totalCount = await prisma.companyInvitation.count({
+      where: { 
+        userId: user.id,
+        status: "PENDING"
       }
     });
-    
-    return NextResponse.json(invitations);
+
+    return NextResponse.json({
+      invitations: formattedInvitations,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error fetching invitations:", error);
     return NextResponse.json(
       { error: "Erreur lors de la récupération des invitations" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -51,23 +92,12 @@ export async function GET(request) {
 // Send an invitation to join a company
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -76,7 +106,7 @@ export async function POST(request) {
     if (!companyId || !email) {
       return NextResponse.json(
         { error: "L'ID de l'entreprise et l'email sont requis" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -94,7 +124,7 @@ export async function POST(request) {
     if (!company) {
       return NextResponse.json(
         { error: "Entreprise non trouvée" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
@@ -106,7 +136,7 @@ export async function POST(request) {
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: "Vous devez être propriétaire ou administrateur pour inviter des membres" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
 
@@ -118,7 +148,7 @@ export async function POST(request) {
     if (!invitedUser) {
       return NextResponse.json(
         { error: "Aucun utilisateur trouvé avec cette adresse email. L'utilisateur doit avoir un compte pour être invité." },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -135,7 +165,7 @@ export async function POST(request) {
     if (existingMember) {
       return NextResponse.json(
         { error: "Cet utilisateur est déjà membre de l'entreprise" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -151,7 +181,7 @@ export async function POST(request) {
     if (existingInvitation) {
       return NextResponse.json(
         { error: "Une invitation est déjà en attente pour cet utilisateur" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -176,12 +206,12 @@ export async function POST(request) {
       success: true, 
       invitation,
       message: `Invitation envoyée à ${invitedUser.name || invitedUser.email}. L'utilisateur pourra voir et gérer cette invitation dans son tableau de bord.`
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error creating invitation:", error);
     return NextResponse.json(
       { error: "Erreur lors de la création de l'invitation" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -189,40 +219,28 @@ export async function POST(request) {
 // Accept or decline an invitation
 export async function PATCH(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
-    
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
     
-    // MODIFICATION: Accepter invitationId au lieu de token
     const { invitationId, action } = await request.json();
     
     if (!invitationId || !action) {
       return NextResponse.json(
         { error: "L'ID de l'invitation et l'action sont requis" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
     if (action !== "accept" && action !== "decline") {
       return NextResponse.json(
         { error: "L'action doit être 'accept' ou 'decline'" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
@@ -237,7 +255,7 @@ export async function PATCH(request) {
     if (!invitation) {
       return NextResponse.json(
         { error: "Invitation non trouvée" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
@@ -250,7 +268,7 @@ export async function PATCH(request) {
       
       return NextResponse.json(
         { error: "Cette invitation a expiré" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
@@ -258,7 +276,7 @@ export async function PATCH(request) {
     if (invitation.userId !== user.id) {
       return NextResponse.json(
         { error: "Cette invitation ne vous est pas destinée" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
     
@@ -266,7 +284,7 @@ export async function PATCH(request) {
     if (invitation.status !== "PENDING") {
       return NextResponse.json(
         { error: "Cette invitation a déjà été traitée" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
@@ -289,7 +307,7 @@ export async function PATCH(request) {
         
         return NextResponse.json(
           { error: "Vous êtes déjà membre de cette entreprise" },
-          { status: 400 }
+          { status: 400, headers: corsHeaders }
         );
       }
       
@@ -314,7 +332,7 @@ export async function PATCH(request) {
         success: true,
         message: `Vous avez rejoint l'entreprise ${invitation.company.name} avec succès`,
         company: invitation.company,
-      });
+      }, { headers: corsHeaders });
     } else {
       // Decline invitation
       await prisma.companyInvitation.update({
@@ -327,13 +345,13 @@ export async function PATCH(request) {
       return NextResponse.json({
         success: true,
         message: `Vous avez refusé l'invitation à rejoindre ${invitation.company.name}`,
-      });
+      }, { headers: corsHeaders });
     }
   } catch (error) {
     console.error("Error processing invitation:", error);
     return NextResponse.json(
       { error: "Erreur lors du traitement de l'invitation" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 

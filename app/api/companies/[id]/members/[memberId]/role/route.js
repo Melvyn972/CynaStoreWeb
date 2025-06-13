@@ -1,117 +1,116 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/libs/next-auth";
+import { getAuthenticatedUser } from "@/libs/auth-middleware";
 import prisma from "@/libs/prisma";
 
-// Update member role
-export async function PATCH(request, { params }) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
+// Update member role in a company
+export async function PUT(request, { params }) {
+  try {
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
-
-    const { id: companyId, memberId } = params;
+    
+    const companyId = params.id;
+    const memberId = params.memberId;
     const { role } = await request.json();
-
-    if (!role || !["MEMBER", "ADMIN"].includes(role)) {
+    
+    if (!role || !['admin', 'member'].includes(role.toLowerCase())) {
       return NextResponse.json(
-        { error: "Rôle invalide. Doit être MEMBER ou ADMIN" },
-        { status: 400 }
+        { error: "Rôle invalide. Utilisez 'admin' ou 'member'." },
+        { status: 400, headers: corsHeaders }
       );
     }
-
-    // Check if user has permission to modify roles (OWNER or ADMIN)
+    
+    // Check if the company exists
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      include: {
-        members: {
-          where: { userId: user.id }
-        }
-      }
     });
     
     if (!company) {
       return NextResponse.json(
         { error: "Entreprise non trouvée" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
-    const isOwner = company.ownerId === user.id;
-    const currentUserRole = company.members[0]?.role;
-    const isAdmin = currentUserRole === "ADMIN";
-    
-    if (!isOwner && !isAdmin) {
+    // Check if user is the owner (only owners can change roles)
+    if (company.ownerId !== user.id) {
       return NextResponse.json(
-        { error: "Vous devez être propriétaire ou administrateur pour modifier les rôles" },
-        { status: 403 }
+        { error: "Seul le propriétaire peut modifier les rôles des membres" },
+        { status: 403, headers: corsHeaders }
       );
     }
-
+    
     // Find the member to update
-    const memberToUpdate = await prisma.companyMember.findUnique({
+    const member = await prisma.companyMember.findUnique({
       where: { id: memberId },
-      include: { user: true }
+      include: { user: true },
     });
-
-    if (!memberToUpdate) {
+    
+    if (!member) {
       return NextResponse.json(
         { error: "Membre non trouvé" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
-
-    if (memberToUpdate.companyId !== companyId) {
+    
+    // Check if member belongs to this company
+    if (member.companyId !== companyId) {
       return NextResponse.json(
-        { error: "Ce membre ne fait pas partie de cette entreprise" },
-        { status: 400 }
+        { error: "Ce membre n'appartient pas à cette entreprise" },
+        { status: 400, headers: corsHeaders }
       );
     }
-
-    // Don't allow changing the owner's role
-    if (memberToUpdate.userId === company.ownerId) {
+    
+    // Can't change owner role
+    if (member.userId === company.ownerId) {
       return NextResponse.json(
         { error: "Impossible de modifier le rôle du propriétaire" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
-
-    // Update the member's role
+    
+    // Update member role
     const updatedMember = await prisma.companyMember.update({
       where: { id: memberId },
-      data: { role },
-      include: { user: true }
+      data: { role: role.toUpperCase() },
+      include: { user: true },
     });
-
-    console.log(`✅ Role updated: ${memberToUpdate.user.email} role changed to ${role} in ${company.name}`);
-
-    return NextResponse.json({
-      success: true,
-      member: updatedMember,
-      message: `Rôle de ${memberToUpdate.user.name || memberToUpdate.user.email} mis à jour vers ${role === 'ADMIN' ? 'Administrateur' : 'Membre'}`
-    });
-
+    
+    return NextResponse.json(
+      {
+        success: true,
+        message: `Rôle de ${updatedMember.user.name} modifié en ${role}`,
+        member: {
+          id: updatedMember.id,
+          name: updatedMember.user.name,
+          email: updatedMember.user.email,
+          role: updatedMember.role.toLowerCase(),
+          joinedAt: updatedMember.joinedAt,
+        },
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error("Error updating member role:", error);
     return NextResponse.json(
-      { error: "Erreur lors de la mise à jour du rôle" },
-      { status: 500 }
+      { error: "Erreur lors de la modification du rôle du membre" },
+      { status: 500, headers: corsHeaders }
     );
   }
 } 

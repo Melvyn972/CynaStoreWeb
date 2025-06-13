@@ -1,32 +1,35 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/libs/next-auth";
+import { getAuthenticatedUser } from "@/libs/auth-middleware";
 import prisma from "@/libs/prisma";
+
+// Enable CORS for mobile app
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
 
 // Get all members of a company
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
-    
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
     
     const companyId = params.id;
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page")) || 1;
+    const limit = parseInt(searchParams.get("limit")) || 10;
+    const offset = (page - 1) * limit;
     
     // Check if the company exists
     const company = await prisma.company.findUnique({
@@ -36,7 +39,7 @@ export async function GET(request, { params }) {
     if (!company) {
       return NextResponse.json(
         { error: "Entreprise non trouvée" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
@@ -50,10 +53,10 @@ export async function GET(request, { params }) {
       },
     });
     
-    if (!isMember) {
+    if (!isMember && company.ownerId !== user.id) {
       return NextResponse.json(
         { error: "Vous n'êtes pas autorisé à voir les membres de cette entreprise" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
     
@@ -70,14 +73,39 @@ export async function GET(request, { params }) {
           },
         },
       },
+      skip: offset,
+      take: limit,
+    });
+
+    // Format members for mobile app
+    const formattedMembers = members.map(member => ({
+      id: member.id,
+      name: member.user.name,
+      email: member.user.email,
+      image: member.user.image,
+      role: member.role.toLowerCase(),
+      joinedAt: member.joinedAt,
+    }));
+
+    // Get total count for pagination
+    const totalCount = await prisma.companyMember.count({
+      where: { companyId },
     });
     
-    return NextResponse.json(members);
+    return NextResponse.json({
+      members: formattedMembers,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error fetching company members:", error);
     return NextResponse.json(
       { error: "Erreur lors de la récupération des membres de l'entreprise" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -85,23 +113,12 @@ export async function GET(request, { params }) {
 // Delete a member from a company
 export async function DELETE(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Vous devez être connecté" },
-        { status: 401 }
-      );
-    }
-    
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: "Vous devez être connecté" },
+        { status: 401, headers: corsHeaders }
       );
     }
     
@@ -111,7 +128,7 @@ export async function DELETE(request, { params }) {
     if (!memberId) {
       return NextResponse.json(
         { error: "L'ID du membre est requis" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
@@ -128,7 +145,7 @@ export async function DELETE(request, { params }) {
     if (!company) {
       return NextResponse.json(
         { error: "Entreprise non trouvée" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
@@ -140,7 +157,7 @@ export async function DELETE(request, { params }) {
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: "Vous devez être propriétaire ou administrateur pour supprimer des membres" },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
     
@@ -154,14 +171,14 @@ export async function DELETE(request, { params }) {
     if (!memberToRemove) {
       return NextResponse.json(
         { error: "Membre non trouvé" },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     
     if (memberToRemove.userId === company.ownerId) {
       return NextResponse.json(
         { error: "Vous ne pouvez pas supprimer le propriétaire de l'entreprise" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     
@@ -172,12 +189,12 @@ export async function DELETE(request, { params }) {
       },
     });
     
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error removing company member:", error);
     return NextResponse.json(
       { error: "Erreur lors de la suppression du membre de l'entreprise" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 

@@ -38,18 +38,37 @@ export async function GET(request) {
       include: { company: true },
     });
 
-    // Format response
+    // Format response for mobile app
     const companies = [
       ...ownedCompanies.map(company => ({
-        ...company,
-        isOwner: true,
+        id: company.id,
+        name: company.name,
+        description: company.description,
+        address: company.address,
+        phone: company.phone,
+        email: company.email,
+        website: company.website,
+        tva: company.vatNumber,
+        siret: company.siretNumber,
+        createdAt: company.createdAt,
+        updatedAt: company.updatedAt,
+        role: 'owner',
       })),
       ...memberCompanies
         .filter(membership => !ownedCompanies.some(owned => owned.id === membership.companyId))
         .map(membership => ({
-          ...membership.company,
-          isOwner: false,
-          role: membership.role,
+          id: membership.company.id,
+          name: membership.company.name,
+          description: membership.company.description,
+          address: membership.company.address,
+          phone: membership.company.phone,
+          email: membership.company.email,
+          website: membership.company.website,
+          tva: membership.company.vatNumber,
+          siret: membership.company.siretNumber,
+          createdAt: membership.company.createdAt,
+          updatedAt: membership.company.updatedAt,
+          role: membership.role.toLowerCase(),
         })),
     ];
 
@@ -77,9 +96,9 @@ export async function POST(request) {
 
     const data = await request.json();
 
-    if (!data.name) {
+    if (!data.name || !data.siret) {
       return NextResponse.json(
-        { error: "Le nom de l'entreprise est requis" },
+        { error: "Le nom de l'entreprise et le SIRET sont requis" },
         { status: 400, headers: corsHeaders }
       );
     }
@@ -93,8 +112,8 @@ export async function POST(request) {
         phone: data.phone || "",
         email: data.email || "",
         website: data.website || "",
-        vatNumber: data.vatNumber || "",
-        siretNumber: data.siretNumber || "",
+        vatNumber: data.tva || "",
+        siretNumber: data.siret || "",
         owner: {
           connect: { id: user.id },
         },
@@ -109,7 +128,23 @@ export async function POST(request) {
       },
     });
 
-    return NextResponse.json(company, { headers: corsHeaders });
+    // Format response for mobile app
+    const formattedCompany = {
+      id: company.id,
+      name: company.name,
+      description: company.description,
+      address: company.address,
+      phone: company.phone,
+      email: company.email,
+      website: company.website,
+      tva: company.vatNumber,
+      siret: company.siretNumber,
+      createdAt: company.createdAt,
+      updatedAt: company.updatedAt,
+      role: 'owner',
+    };
+
+    return NextResponse.json({ company: formattedCompany }, { headers: corsHeaders });
   } catch (error) {
     console.error("Error creating company:", error);
     return NextResponse.json(
