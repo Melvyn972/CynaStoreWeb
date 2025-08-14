@@ -1,64 +1,78 @@
+'use client';
+import { useState, useEffect } from "react";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
-import prisma from "@/libs/prisma";
 import PageLayout from "@/components/PageLayout";
-import { Suspense } from "react";
 import ArticlesClient from "./ArticlesClient";
 
-export const metadata = getSEOTags({
-  title: `Boutique | ${config.appName}`,
-  canonicalUrlRelative: "/articles",
-});
+const ArticlesPage = () => {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-const ArticlesPage = async () => {
-  const articles = await prisma.articles.findMany({
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      price: true,
-      image: true,
-      images: true,
-      stock: true,
-      subscriptionDuration: true,
-      createdAt: true,
-      categoryObj: {
-        select: {
-          id: true,
-          name: true
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/articles?limit=50');
+        
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement des articles');
         }
-      },
-      specifications: {
-        select: {
-          technicalSpecification: {
-            select: {
-              id: true,
-              name: true,
-              description: true
-            }
-          }
-        }
+        
+        const data = await response.json();
+        setArticles(data.articles || []);
+      } catch (err) {
+        console.error('Error fetching articles:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    },
-    orderBy: {
-      createdAt: 'desc'
-    },
-    take: 50 // Limiter le nombre d'articles pour les performances
-  });
-  
-  return (
-    <PageLayout>
-      <Suspense fallback={
+    };
+
+    fetchArticles();
+  }, []);
+
+  if (loading) {
+    return (
+      <PageLayout>
         <div className="min-h-screen relative overflow-hidden">
           <div className="ios-container pt-24 pb-20 relative z-20">
             <div className="flex items-center justify-center min-h-[50vh]">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+              <p className="ml-4 text-white">Chargement des articles...</p>
             </div>
           </div>
         </div>
-      }>
-        <ArticlesClient articles={articles} />
-      </Suspense>
+      </PageLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageLayout>
+        <div className="min-h-screen relative overflow-hidden">
+          <div className="ios-container pt-24 pb-20 relative z-20">
+            <div className="flex items-center justify-center min-h-[50vh]">
+              <div className="text-center">
+                <p className="text-red-500 mb-4">Erreur: {error}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                >
+                  Réessayer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  return (
+    <PageLayout>
+      <ArticlesClient articles={articles} />
     </PageLayout>
   );
 };

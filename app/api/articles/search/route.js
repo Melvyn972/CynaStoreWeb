@@ -30,29 +30,29 @@ export async function GET(request) {
     let whereClause = {};
     let andConditions = [];
     
-    // Search functionality - SQLite compatible
+    // Search functionality - PostgreSQL compatible
     if (query.trim()) {
       if (exactMatch) {
         whereClause.OR = [
-          { title: { equals: query } },
-          { description: { equals: query } },
-          { category: { equals: query } },
+          { title: { equals: query, mode: 'insensitive' } },
+          { description: { equals: query, mode: 'insensitive' } },
+          { category: { equals: query, mode: 'insensitive' } },
         ];
       } else {
         // Recherche "commence par" si le query commence par ^
         if (query.startsWith('^')) {
           const searchTerm = query.substring(1);
           whereClause.OR = [
-            { title: { startsWith: searchTerm } },
-            { description: { startsWith: searchTerm } },
-            { category: { startsWith: searchTerm } },
+            { title: { startsWith: searchTerm, mode: 'insensitive' } },
+            { description: { startsWith: searchTerm, mode: 'insensitive' } },
+            { category: { startsWith: searchTerm, mode: 'insensitive' } },
           ];
         } else {
           // Recherche normale (contient)
           whereClause.OR = [
-            { title: { contains: query } },
-            { description: { contains: query } },
-            { category: { contains: query } },
+            { title: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+            { category: { contains: query, mode: 'insensitive' } },
           ];
         }
       }

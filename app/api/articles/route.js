@@ -36,17 +36,19 @@ export async function GET(request) {
       whereClause.category = category;
     }
     
-    // Search - SQLite compatible
+    // Search - PostgreSQL compatible
     if (search) {
       whereClause.OR = [
         {
           title: {
             contains: search,
+            mode: 'insensitive', // PostgreSQL case-insensitive search
           },
         },
         {
           description: {
             contains: search,
+            mode: 'insensitive', // PostgreSQL case-insensitive search
           },
         },
       ];
@@ -55,10 +57,38 @@ export async function GET(request) {
     // Calculate pagination
     const skip = (page - 1) * limit;
 
-    // Get articles with pagination
+    // Get articles with pagination and relations
     const [articles, totalCount] = await Promise.all([
       prisma.articles.findMany({
         where: whereClause,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          price: true,
+          image: true,
+          images: true,
+          stock: true,
+          subscriptionDuration: true,
+          createdAt: true,
+          categoryObj: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          specifications: {
+            select: {
+              technicalSpecification: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true
+                }
+              }
+            }
+          }
+        },
         orderBy: {
           createdAt: 'desc',
         },
