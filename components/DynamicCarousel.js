@@ -8,19 +8,21 @@ const DynamicCarousel = () => {
   const [slides, setSlides] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     fetchSlides();
   }, []);
 
   useEffect(() => {
-    if (slides.length > 1) {
+    if (slides.length > 1 && isAutoPlaying) {
       const interval = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % slides.length);
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [slides.length]);
+  }, [slides.length, isAutoPlaying]);
 
   const fetchSlides = async () => {
     try {
@@ -49,16 +51,36 @@ const DynamicCarousel = () => {
     }
   };
 
+  const pauseAutoPlay = () => {
+    setIsAutoPlaying(false);
+    setTimeout(() => setIsAutoPlaying(true), 10000);
+  };
+
   const goToSlide = (index) => {
+    if (isTransitioning) return; 
+    setIsTransitioning(true);
     setCurrentSlide(index);
+    pauseAutoPlay();
+    
+    setTimeout(() => setIsTransitioning(false), 300);
   };
 
   const nextSlide = () => {
+    if (isTransitioning) return; 
+    setIsTransitioning(true);
     setCurrentSlide((prev) => (prev + 1) % slides.length);
+    pauseAutoPlay();
+    
+    setTimeout(() => setIsTransitioning(false), 300);
   };
 
   const prevSlide = () => {
+    if (isTransitioning) return; 
+    setIsTransitioning(true);
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    pauseAutoPlay();
+    
+    setTimeout(() => setIsTransitioning(false), 300);
   };
 
   if (loading) {
@@ -119,7 +141,11 @@ const DynamicCarousel = () => {
   const currentSlideData = slides[currentSlide];
 
   return (
-    <section className="relative w-full min-h-[120vh] flex flex-col items-center justify-center overflow-hidden ios-hero-section pb-32">
+    <section 
+      className="relative w-full min-h-[120vh] flex flex-col items-center justify-center overflow-hidden ios-hero-section pb-32"
+      onMouseEnter={() => setIsAutoPlaying(false)}
+      onMouseLeave={() => setIsAutoPlaying(true)}
+    >
       {/* Image de fond du slide actuel */}
       <div className="absolute inset-0">
         <Image
@@ -189,7 +215,10 @@ const DynamicCarousel = () => {
           {/* Boutons précédent/suivant */}
           <button
             onClick={prevSlide}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 p-3 rounded-full ios-glass-light text-white hover:bg-white/20 transition-all duration-300 group"
+            disabled={isTransitioning}
+            className={`absolute left-4 top-1/2 transform -translate-y-1/2 z-20 p-3 rounded-full ios-glass-light text-white transition-all duration-300 group ${
+              isTransitioning ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/20'
+            }`}
             aria-label="Slide précédent"
           >
             <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,7 +228,10 @@ const DynamicCarousel = () => {
           
           <button
             onClick={nextSlide}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 p-3 rounded-full ios-glass-light text-white hover:bg-white/20 transition-all duration-300 group"
+            disabled={isTransitioning}
+            className={`absolute right-4 top-1/2 transform -translate-y-1/2 z-20 p-3 rounded-full ios-glass-light text-white transition-all duration-300 group ${
+              isTransitioning ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/20'
+            }`}
             aria-label="Slide suivant"
           >
             <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,9 +245,12 @@ const DynamicCarousel = () => {
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
+                disabled={isTransitioning}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   index === currentSlide 
                     ? 'bg-white scale-125' 
+                    : isTransitioning
+                    ? 'bg-white/30 cursor-not-allowed'
                     : 'bg-white/50 hover:bg-white/75 hover:scale-110'
                 }`}
                 aria-label={`Aller au slide ${index + 1}`}
