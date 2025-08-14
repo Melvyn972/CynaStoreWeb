@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
-import { writeFile } from "fs/promises";
-import { join } from "path";
+import { put } from "@vercel/blob";
 import { v4 as uuidv4 } from "uuid";
 
 // Helper function to process avatar uploads
@@ -17,14 +16,11 @@ async function saveFile(file) {
   const extension = originalName.split('.').pop();
   const filename = `${uuidv4()}.${extension}`;
   
-  // Define path where the file will be saved
-  const path = join(process.cwd(), 'public/uploads/avatars', filename);
-
-  // Write the file to the filesystem
-  await writeFile(path, buffer);
-
-  // Return the public URL
-  return `/uploads/avatars/${filename}`;
+  const blob = await put(filename, buffer, {
+    access: 'public',
+  });
+  
+  return blob.url;
 }
 
 // GET /api/admin/users - Get all users

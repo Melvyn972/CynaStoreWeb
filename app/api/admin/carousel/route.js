@@ -2,28 +2,18 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
-import path from "path";
-import { writeFile, mkdir } from "fs/promises";
+import { put } from "@vercel/blob";
 
 // Function to save uploaded files
 async function saveFile(file) {
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-  
-  // Create upload directory if it doesn't exist
-  try {
-    await mkdir(uploadDir, { recursive: true });
-  } catch (error) {
-    // Directory already exists, continue
-  }
-
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  const filePath = path.join(uploadDir, filename);
   
-  await writeFile(filePath, buffer);
-
-  // Return the public URL
-  return `/uploads/${filename}`;
+  const blob = await put(filename, buffer, {
+    access: 'public',
+  });
+  
+  return blob.url;
 }
 
 // GET /api/admin/carousel - Get all carousel slides

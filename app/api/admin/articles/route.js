@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
-import { writeFile } from "fs/promises";
-import { join } from "path";
+import { put } from "@vercel/blob";
 import { v4 as uuidv4 } from "uuid";
 
 async function saveFile(file) {
@@ -12,9 +11,12 @@ async function saveFile(file) {
   const originalName = file.name;
   const extension = originalName.split('.').pop();
   const filename = `${uuidv4()}.${extension}`;
-  const path = join(process.cwd(), 'public/uploads', filename);
-  await writeFile(path, buffer);
-  return `/uploads/${filename}`;
+  
+  const blob = await put(filename, buffer, {
+    access: 'public',
+  });
+  
+  return blob.url;
 }
 
 export async function POST(request) {

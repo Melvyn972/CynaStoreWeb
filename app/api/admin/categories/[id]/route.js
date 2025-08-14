@@ -2,40 +2,35 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
-import path from "path";
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { put, del } from "@vercel/blob";
 
 // Function to save uploaded files
 async function saveFile(file) {
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-  
-  // Create upload directory if it doesn't exist
-  try {
-    await mkdir(uploadDir, { recursive: true });
-  } catch (error) {
-    // Directory already exists, continue
-  }
-
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  const filePath = path.join(uploadDir, filename);
   
-  await writeFile(filePath, buffer);
-
-  // Return the public URL
-  return `/uploads/${filename}`;
+  const blob = await put(filename, buffer, {
+    access: 'public',
+  });
+  
+  return blob.url;
 }
 
 // Function to delete files
-async function deleteFile(imagePath) {
-  if (!imagePath) return;
+async function deleteFile(imageUrl) {
+  if (!imageUrl) return;
   
   try {
-    const fullPath = path.join(process.cwd(), 'public', imagePath);
-    await unlink(fullPath);
+    // Extract the blob URL from the full URL
+    const url = new URL(imageUrl);
+    const pathname = url.pathname;
+    const filename = pathname.split('/').pop();
+    
+    if (filename) {
+      await del(filename);
+    }
   } catch (error) {
     console.error("Error deleting file:", error);
-    // File doesn't exist or cannot be deleted, continue
   }
 }
 

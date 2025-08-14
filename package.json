@@ -17,6 +17,7 @@
     "@auth/prisma-adapter": "^2.9.0",
     "@headlessui/react": "^1.7.19",
     "@prisma/client": "^6.6.0",
+    "@vercel/blob": "^1.1.1",
     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
     "crisp-sdk-web": "^1.0.25",

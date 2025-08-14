@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
-import { writeFile, unlink } from "fs/promises";
-import { join } from "path";
+import { put, del } from "@vercel/blob";
 import { v4 as uuidv4 } from "uuid";
-import { existsSync } from "fs";
 
 // Helper function to process avatar uploads
 async function saveFile(file) {
@@ -18,26 +16,28 @@ async function saveFile(file) {
   const extension = originalName.split('.').pop();
   const filename = `${uuidv4()}.${extension}`;
   
-  // Define path where the file will be saved
-  const path = join(process.cwd(), 'public/uploads/avatars', filename);
-
-  // Write the file to the filesystem
-  await writeFile(path, buffer);
-
-  // Return the public URL
-  return `/uploads/avatars/${filename}`;
+  const blob = await put(filename, buffer, {
+    access: 'public',
+  });
+  
+  return blob.url;
 }
 
 // Helper function to delete an old avatar file
 async function deleteFile(imageUrl) {
-  if (!imageUrl || !imageUrl.startsWith('/uploads/avatars/')) return;
+  if (!imageUrl) return;
   
-  const filename = imageUrl.split('/').pop();
-  const path = join(process.cwd(), 'public/uploads/avatars', filename);
-  
-  // Check if file exists before attempting to delete
-  if (existsSync(path)) {
-    await unlink(path);
+  try {
+    // Extract the blob URL from the full URL
+    const url = new URL(imageUrl);
+    const pathname = url.pathname;
+    const filename = pathname.split('/').pop();
+    
+    if (filename) {
+      await del(filename);
+    }
+  } catch (error) {
+    console.error("Error deleting file:", error);
   }
 }
 
