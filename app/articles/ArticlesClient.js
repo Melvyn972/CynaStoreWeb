@@ -45,10 +45,10 @@ const ArticlesClient = ({ articles: initialArticles }) => {
   const fetchCategoriesAndSpecs = async () => {
     try {
       // Récupérer les spécifications
-      const specsResponse = await fetch('/api/admin/specifications');
+      const specsResponse = await fetch('/api/specifications');
       if (specsResponse.ok) {
         const specsData = await specsResponse.json();
-        setSpecifications(specsData.filter(spec => spec.isActive));
+        setSpecifications(specsData);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des spécifications:', error);
@@ -129,7 +129,10 @@ const ArticlesClient = ({ articles: initialArticles }) => {
       // Filtre par spécifications (si on a accès aux specs)
       let matchesSpecs = true;
       if (selectedSpecs.length > 0 && article.specifications) {
-        const articleSpecIds = article.specifications.map(spec => spec.technicalSpecificationId);
+        // Gérer les deux formats possibles (ancien et nouveau)
+        const articleSpecIds = article.specifications.map(spec => 
+          spec.technicalSpecificationId || spec.technicalSpecification?.id
+        ).filter(Boolean);
         matchesSpecs = selectedSpecs.every(specId => articleSpecIds.includes(specId));
       }
       

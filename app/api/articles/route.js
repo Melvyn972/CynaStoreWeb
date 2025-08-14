@@ -18,6 +18,7 @@ export async function GET(request) {
     const ids = searchParams.get('ids');
     const category = searchParams.get('category');
     const search = searchParams.get('search');
+    const specifications = searchParams.get('specifications'); // IDs séparés par des virgules
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 10;
     
@@ -34,6 +35,20 @@ export async function GET(request) {
     // Filter by category
     if (category) {
       whereClause.category = category;
+    }
+    
+    // Filter by technical specifications
+    if (specifications) {
+      const specIds = specifications.split(',').filter(Boolean);
+      if (specIds.length > 0) {
+        whereClause.specifications = {
+          some: {
+            technicalSpecificationId: {
+              in: specIds
+            }
+          }
+        };
+      }
     }
     
     // Search - PostgreSQL compatible
