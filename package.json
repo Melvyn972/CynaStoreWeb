@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "prebuild": "prisma generate",
     "postbuild": "next-sitemap && npm run optimize",
     "start": "next start",
     "lint": "next lint",
