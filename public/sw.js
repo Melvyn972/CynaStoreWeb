@@ -1,153 +1,98 @@
 const CACHE_NAME = 'cynastore-v1';
-const STATIC_CACHE_NAME = 'cynastore-static-v1';
+const STATIC_CACHE = 'cynastore-static-v1';
+const DYNAMIC_CACHE = 'cynastore-dynamic-v1';
 
-// Fichiers à mettre en cache immédiatement
+// Ressources à mettre en cache immédiatement
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/logo.png',
-  '/favicon.ico',
+  '/_next/static/css/',
+  '/_next/static/js/'
 ];
 
 // Installation du service worker
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
-  
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => {
-        // Forcer l'activation immédiate
-        return self.skipWaiting();
-      })
+    caches.open(STATIC_CACHE).then((cache) => {
+      return cache.addAll(STATIC_ASSETS.filter(url => !url.endsWith('/')));
+    })
   );
+  self.skipWaiting();
 });
 
 // Activation du service worker
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
-  
   event.waitUntil(
-    // Nettoyer les anciens caches
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE_NAME) {
-            console.log('Service Worker: Deleting old cache', cacheName);
+          if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => {
-      // Prendre le contrôle de toutes les pages immédiatement
-      return self.clients.claim();
     })
   );
+  self.clients.claim();
 });
 
-// Interception des requêtes
+// Stratégie de mise en cache
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  
-  // Ignorer les requêtes non-HTTP/HTTPS
-  if (!url.protocol.startsWith('http')) {
+
+  // Ne pas intercepter les requêtes API et les websockets
+  if (url.pathname.startsWith('/api') || 
+      url.pathname.startsWith('/_next/webpack-hmr') ||
+      request.method !== 'GET') {
     return;
   }
-  
-  // Stratégie de cache différente selon le type de ressource
-  if (request.destination === 'image') {
-    // Images: Cache First
-    event.respondWith(cacheFirst(request));
-  } else if (url.pathname.startsWith('/api/')) {
-    // API: Network First
-    event.respondWith(networkFirst(request));
-  } else if (url.pathname.startsWith('/_next/static/')) {
-    // Assets statiques Next.js: Cache First (immutables)
-    event.respondWith(cacheFirst(request));
-  } else {
-    // Pages: Stale While Revalidate
-    event.respondWith(staleWhileRevalidate(request));
+
+  // Stratégie Cache First pour les assets statiques
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(request).then((response) => {
+        return response || fetch(request).then((fetchResponse) => {
+          return caches.open(STATIC_CACHE).then((cache) => {
+            cache.put(request, fetchResponse.clone());
+            return fetchResponse;
+          });
+        });
+      })
+    );
+    return;
   }
+
+  // Stratégie Network First pour les pages
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        // Mettre en cache seulement les réponses réussies
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(DYNAMIC_CACHE).then((cache) => {
+            cache.put(request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Fallback vers le cache si le réseau échoue
+        return caches.match(request).then((response) => {
+          return response || caches.match('/').then((fallback) => {
+            return fallback || new Response('Page non disponible hors ligne', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain' }
+            });
+          });
+        });
+      })
+  );
 });
 
-// Stratégie Cache First (pour les assets statiques)
-async function cacheFirst(request) {
-  try {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(request);
-    
-    if (cached) {
-      return cached;
-    }
-    
-    const response = await fetch(request);
-    
-    // Mettre en cache si la réponse est valide
-    if (response.status === 200) {
-      cache.put(request, response.clone());
-    }
-    
-    return response;
-  } catch (error) {
-    console.error('Cache First failed:', error);
-    return fetch(request);
-  }
-}
-
-// Stratégie Network First (pour les API)
-async function networkFirst(request) {
-  try {
-    const response = await fetch(request);
-    
-    if (response.status === 200) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone());
-    }
-    
-    return response;
-  } catch (error) {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(request);
-    
-    if (cached) {
-      return cached;
-    }
-    
-    throw error;
-  }
-}
-
-// Stratégie Stale While Revalidate (pour les pages)
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-  
-  // Récupérer en arrière-plan
-  const fetchPromise = fetch(request).then((response) => {
-    if (response.status === 200) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  }).catch(() => {
-    // En cas d'erreur réseau, utiliser le cache
-    return cached;
-  });
-  
-  // Retourner immédiatement le cache s'il existe, sinon attendre le réseau
-  return cached || fetchPromise;
-}
-
-// Optimisation pour le back/forward cache
+// Gestion des messages pour les mises à jour
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
-  if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_NAME });
-  }
-}); 
+});

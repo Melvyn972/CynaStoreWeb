@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import toast from "react-hot-toast";
 
 export default function SuccessPage() {
@@ -169,6 +170,8 @@ export default function SuccessPage() {
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 } 

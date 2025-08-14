@@ -53,7 +53,7 @@ export default function NewCompanyPage() {
 
       const data = await response.json();
       toast.success("Entreprise créée avec succès");
-      router.push(`/dashboard/companies/${data.id}`);
+      router.push(`/dashboard/companies/${data.company.id}`);
     } catch (error) {
       console.error("Error creating company:", error);
       toast.error(error.message || "Erreur lors de la création de l'entreprise");

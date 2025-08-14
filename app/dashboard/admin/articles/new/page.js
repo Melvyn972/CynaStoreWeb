@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import BackgroundEffects from "@/app/components/BackgroundEffects";
+import ImageCarouselManager from "@/components/ImageCarouselManager";
 
 export default function NewArticle() {
   const router = useRouter();
@@ -13,13 +14,69 @@ export default function NewArticle() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
+    categoryId: '',
     price: '',
+    stock: '',
+    subscriptionDuration: '',
   });
+  const [categories, setCategories] = useState([]);
+  const [specifications, setSpecifications] = useState([]);
+  const [selectedSpecifications, setSelectedSpecifications] = useState([]);
+  const [images, setImages] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [specificationsLoading, setSpecificationsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Charger les catégories et spécifications au montage
+  useEffect(() => {
+    fetchCategories();
+    fetchSpecifications();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const response = await fetch('/api/admin/categories');
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      } else {
+        console.error('Erreur lors du chargement des catégories');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const fetchSpecifications = async () => {
+    try {
+      setSpecificationsLoading(true);
+      const response = await fetch('/api/admin/specifications');
+      if (response.ok) {
+        const data = await response.json();
+        setSpecifications(data);
+      } else {
+        console.error('Erreur lors du chargement des spécifications');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    } finally {
+      setSpecificationsLoading(false);
+    }
+  };
+
+  const handleSpecificationChange = (specId, checked) => {
+    if (checked) {
+      setSelectedSpecifications(prev => [...prev, specId]);
+    } else {
+      setSelectedSpecifications(prev => prev.filter(id => id !== specId));
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,12 +90,8 @@ export default function NewArticle() {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      
-      // Créer un aperçu
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
+      reader.onload = (e) => setImagePreview(e.target.result);
       reader.readAsDataURL(file);
     }
   };
@@ -49,21 +102,48 @@ export default function NewArticle() {
     setError('');
 
     try {
+      // Validation
+      if (!formData.categoryId) {
+        throw new Error('Veuillez sélectionner une catégorie');
+      }
+      
+      if (images.length === 0 && !selectedFile) {
+        throw new Error('Veuillez ajouter au moins une image');
+      }
+
       // Créer un objet FormData pour envoyer le fichier
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
       formDataToSend.append('description', formData.description);
-      formDataToSend.append('category', formData.category);
+      formDataToSend.append('categoryId', formData.categoryId);
       formDataToSend.append('price', formData.price);
-      
+      formDataToSend.append('stock', formData.stock);
+      formDataToSend.append('subscriptionDuration', formData.subscriptionDuration);
+
+      // Image principale (première image du carrousel ou fichier sélectionné)
       if (selectedFile) {
         formDataToSend.append('image', selectedFile);
+      } else if (images.length > 0) {
+        formDataToSend.append('image', images[0].file);
+      }
+
+      // Images additionnelles pour le carrousel
+      if (images.length > 0) {
+        images.forEach((image, index) => {
+          formDataToSend.append(`carouselImage_${index}`, image.file);
+          formDataToSend.append(`carouselImageAlt_${index}`, image.alt);
+        });
+        formDataToSend.append('carouselImageCount', images.length.toString());
+      }
+
+      // Spécifications techniques sélectionnées
+      if (selectedSpecifications.length > 0) {
+        formDataToSend.append('specifications', JSON.stringify(selectedSpecifications));
       }
 
       const response = await fetch('/api/admin/articles', {
         method: 'POST',
         body: formDataToSend,
-        // Ne pas définir l'en-tête Content-Type lors de l'envoi de FormData
       });
 
       if (!response.ok) {
@@ -84,47 +164,36 @@ export default function NewArticle() {
     <div className="min-h-screen relative overflow-hidden p-6">
       <BackgroundEffects />
       <div className="ios-container space-y-8 relative z-20">
-        {/* Header avec boutons de navigation */}
+        
+        {/* Header */}
         <div className="flex items-center justify-between ios-fade-in">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard/admin/articles"
-              className="ios-button-secondary"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Retour aux articles
-            </Link>
-            <div className="w-px h-8 bg-white/20"></div>
-            <h1 className="ios-title text-2xl md:text-3xl">
-              Nouvel article
+          <div>
+            <h1 className="ios-title text-4xl mb-2">
+              Nouvel <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">article</span>
             </h1>
+            <p className="ios-body">
+              Créez un nouvel article pour votre boutique
+            </p>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/admin"
-              className="ios-button-secondary"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5v6l3-3 3 3V5" />
-              </svg>
-              Admin
-            </Link>
-          </div>
+          <Link 
+            href="/dashboard/admin/articles" 
+            className="ios-button-secondary"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Retour aux articles
+          </Link>
         </div>
 
+        {/* Message d'erreur */}
         {error && (
-          <div className="ios-glass-error rounded-2xl p-6 ios-slide-up">
+          <div className="bg-red-500/20 border border-red-500/50 rounded-2xl p-6 ios-slide-up">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <p className="text-red-300 font-medium">{error}</p>
+              <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-red-300">{error}</span>
             </div>
           </div>
         )}
@@ -138,13 +207,13 @@ export default function NewArticle() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                 </svg>
               </div>
-                             Informations de l&apos;article
+              Informations de l'article
             </h2>
 
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="ios-label">
-                  Titre
+                  Titre *
                 </label>
                 <input
                   type="text"
@@ -152,21 +221,21 @@ export default function NewArticle() {
                   value={formData.title}
                   onChange={handleChange}
                   className="ios-input"
-                                     placeholder="Nom de l&apos;article"
+                  placeholder="Nom de l'article"
                   required
                 />
               </div>
 
               <div className="space-y-2">
                 <label className="ios-label">
-                  Description
+                  Description *
                 </label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
                   className="ios-input h-32 resize-none"
-                                     placeholder="Description détaillée de l&apos;article"
+                  placeholder="Description détaillée de l'article"
                   required
                 />
               </div>
@@ -174,27 +243,42 @@ export default function NewArticle() {
               <div className="ios-grid-2">
                 <div className="space-y-2">
                   <label className="ios-label">
-                    Catégorie
+                    Catégorie *
                   </label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    className="ios-input"
-                    required
-                  >
-                    <option value="">Sélectionnez une catégorie</option>
-                    <option value="hardware">Hardware</option>
-                    <option value="software">Software</option>
-                    <option value="services">Services</option>
-                    <option value="sas">SAS</option>
-                    <option value="autre">Autre</option>
-                  </select>
+                  {categoriesLoading ? (
+                    <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg">
+                      <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-white/60 text-sm">Chargement des catégories...</span>
+                    </div>
+                  ) : (
+                    <select
+                      name="categoryId"
+                      value={formData.categoryId}
+                      onChange={handleChange}
+                      className="ios-input"
+                      required
+                    >
+                      <option value="">Sélectionnez une catégorie</option>
+                      {categories.map(category => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {categories.length === 0 && !categoriesLoading && (
+                    <p className="text-sm text-orange-400 mt-1">
+                      Aucune catégorie créée. 
+                      <Link href="/dashboard/admin/categories" className="text-purple-400 hover:text-purple-300 ml-1">
+                        Créer une catégorie
+                      </Link>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <label className="ios-label">
-                    Prix (€)
+                    Prix (€) *
                   </label>
                   <input
                     type="number"
@@ -209,10 +293,138 @@ export default function NewArticle() {
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <label className="ios-label">
+                  Stock disponible *
+                </label>
+                <input
+                  type="number"
+                  name="stock"
+                  value={formData.stock}
+                  onChange={handleChange}
+                  className="ios-input"
+                  placeholder="0"
+                  min="0"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="ios-label">
+                  Durée d'abonnement
+                  <span className="text-sm font-normal text-white/60 ml-2">(optionnel)</span>
+                </label>
+                <select
+                  name="subscriptionDuration"
+                  value={formData.subscriptionDuration}
+                  onChange={handleChange}
+                  className="ios-input"
+                >
+                  <option value="">Aucune (produit unique)</option>
+                  <option value="1 mois">1 mois</option>
+                  <option value="3 mois">3 mois</option>
+                  <option value="6 mois">6 mois</option>
+                  <option value="1 an">1 an</option>
+                  <option value="2 ans">2 ans</option>
+                  <option value="3 ans">3 ans</option>
+                  <option value="Vie">À vie</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Section image */}
+          {/* Section spécifications techniques */}
+          <div className="dashboard-card">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+              </div>
+              Spécifications techniques
+              <span className="text-sm font-normal text-white/60 ml-2">(optionnel)</span>
+            </h2>
+
+            {specificationsLoading ? (
+              <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg">
+                <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-white/60 text-sm">Chargement des spécifications...</span>
+              </div>
+            ) : specifications.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Aucune spécification disponible</h3>
+                <p className="ios-body mb-4">
+                  Aucune spécification technique n'a été créée.
+                </p>
+                <Link 
+                  href="/dashboard/admin/specifications" 
+                  className="ios-button-secondary"
+                  target="_blank"
+                >
+                  Créer des spécifications
+                </Link>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-4">
+                  <p className="ios-body text-sm">
+                    Sélectionnez les caractéristiques techniques qui s'appliquent à ce produit :
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {specifications.map((spec) => (
+                    <label 
+                      key={spec.id}
+                      className="flex items-start gap-3 p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 hover:border-cyan-500/50 transition-colors cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSpecifications.includes(spec.id)}
+                        onChange={(e) => handleSpecificationChange(spec.id, e.target.checked)}
+                        className="w-4 h-4 text-cyan-600 rounded focus:ring-cyan-500 mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="text-white font-medium">{spec.name}</div>
+                        {spec.description && (
+                          <div className="text-white/60 text-sm mt-1">{spec.description}</div>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+
+                {selectedSpecifications.length > 0 && (
+                  <div className="mt-6 p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl">
+                    <h4 className="text-cyan-300 font-medium mb-2">
+                      Spécifications sélectionnées ({selectedSpecifications.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedSpecifications.map((specId) => {
+                        const spec = specifications.find(s => s.id === specId);
+                        return spec ? (
+                          <span 
+                            key={spec.id}
+                            className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm"
+                          >
+                            {spec.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Section images du produit */}
           <div className="dashboard-card">
             <h2 className="text-xl font-semibold text-white flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
@@ -220,97 +432,107 @@ export default function NewArticle() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-                             Image de l&apos;article
-              <span className="text-sm font-normal text-white/60 ml-2">(optionnel)</span>
+              Images du produit *
             </h2>
 
-            <div className="flex items-start gap-8">
-              <div className="relative w-32 h-32 rounded-2xl overflow-hidden ios-glass-light">
-                {imagePreview ? (
-                  <Image
-                    src={imagePreview}
-                                         alt="Aperçu de l&apos;article"
-                    className="w-full h-full object-cover"
-                    fill
-                    sizes="128px"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                )}
-              </div>
+            <ImageCarouselManager 
+              images={images}
+              onImagesChange={setImages}
+              maxImages={5}
+            />
 
-              <div className="flex-1 space-y-4">
-                <div className="flex flex-col gap-3">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="ios-button-secondary w-fit"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                                         {imagePreview ? 'Changer l&apos;image' : 'Ajouter une image'}
-                  </button>
-                  
-                  {selectedFile && (
-                    <p className="ios-body text-sm text-emerald-300">
-                      ✓ Fichier sélectionné : {selectedFile.name}
-                    </p>
-                  )}
-                </div>
+            {/* Option d'image simple (rétrocompatibilité) */}
+            {images.length === 0 && (
+              <div className="mt-8 pt-8 border-t border-white/10">
+                <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  ou ajouter une image simple
+                </h3>
                 
-                                 <div className="ios-glass-light rounded-xl p-4">
-                   <h4 className="text-white font-medium mb-2">Conseils pour l&apos;image :</h4>
-                  <ul className="ios-body text-xs space-y-1">
-                    <li>• Format : PNG, JPG ou GIF</li>
-                    <li>• Taille maximale : 5MB</li>
-                    <li>• Résolution recommandée : 800x600px</li>
-                    <li>• Fond uni ou transparent de préférence</li>
-                  </ul>
+                <div className="flex items-start gap-8">
+                  <div className="relative w-32 h-32 rounded-2xl overflow-hidden ios-glass-light">
+                    {imagePreview ? (
+                      <Image
+                        src={imagePreview}
+                        alt="Aperçu de l'article"
+                        className="w-full h-full object-cover"
+                        fill
+                        sizes="128px"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                        <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-4">
+                    <div className="flex flex-col gap-3">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="ios-button-secondary w-fit"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {imagePreview ? 'Changer l\'image' : 'Ajouter une image simple'}
+                      </button>
+                      
+                      {selectedFile && (
+                        <p className="ios-body text-sm text-emerald-300">
+                          ✓ Fichier sélectionné : {selectedFile.name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Boutons d'action */}
           <div className="flex items-center justify-between">
-            <Link
+            <Link 
               href="/dashboard/admin/articles"
               className="ios-button-secondary"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               Annuler
             </Link>
-
+            
             <button
               type="submit"
               disabled={loading}
-              className="ios-button-primary"
+              className={`ios-button-primary ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Création...
+                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Création en cours...
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                                     Créer l&apos;article
+                  Créer l'article
                 </>
               )}
             </button>
@@ -319,4 +541,4 @@ export default function NewArticle() {
       </div>
     </div>
   );
-} 
+}

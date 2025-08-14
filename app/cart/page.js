@@ -6,10 +6,9 @@ import Link from "next/link";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import BackgroundEffects from "../components/BackgroundEffects";
 import ThemeToggle from "../components/ThemeToggle";
-
-// Updated to fix API response format handling - v2
 
 export default function CartPage() {
   const [cart, setCart] = useState([]);
@@ -119,7 +118,17 @@ export default function CartPage() {
         }
         
         const companiesData = await response.json();
-        setCompanies(companiesData);
+        
+        // L'API retourne { companies: [...] }
+        if (companiesData.companies && Array.isArray(companiesData.companies)) {
+          setCompanies(companiesData.companies);
+        } else if (Array.isArray(companiesData)) {
+          // Fallback au cas où l'API retournerait directement un tableau
+          setCompanies(companiesData);
+        } else {
+          console.error('Format de réponse API companies invalide:', companiesData);
+          setCompanies([]);
+        }
       } catch (error) {
         console.error('Error fetching companies:', error);
         // Don't show error to user, as companies are optional
@@ -204,6 +213,31 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
+    // Vérifications avant checkout
+    if (!Array.isArray(cart) || cart.length === 0) {
+      toast.error("Votre panier est vide");
+      return;
+    }
+
+    // Vérifier la disponibilité des produits
+    const unavailableItems = cart.filter(item => {
+      const productId = item.productId || item.product?.id;
+      const article = articles[productId];
+      return !article || (article.stock || 0) < item.quantity;
+    });
+
+    if (unavailableItems.length > 0) {
+      toast.error("Certains articles de votre panier ne sont plus disponibles en quantité suffisante");
+      return;
+    }
+
+    // Calculer le total pour vérification
+    const total = parseFloat(calculateTotal());
+    if (total <= 0) {
+      toast.error("Le montant total doit être supérieur à 0€");
+      return;
+    }
+
     if (selectedCompany) {
       // Redirect to company checkout
       router.push(`/checkout?company=${selectedCompany}`);
@@ -323,6 +357,14 @@ export default function CartPage() {
                         <p className="text-black/60 dark:text-white/60 text-sm mb-2">
                           {article.category}
                         </p>
+                        {article.subscriptionDuration && (
+                          <p className="text-blue-600 dark:text-blue-400 text-sm mb-2 flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {article.subscriptionDuration}
+                          </p>
+                        )}
                         <p className="text-purple-600 dark:text-purple-400 font-semibold">
                           {article.price.toFixed(2)} €
                         </p>
@@ -421,30 +463,75 @@ export default function CartPage() {
                 </div>
 
                 {/* Choix du compte d'achat */}
-                {!loadingCompanies && companies.length > 0 && (
-                  <div className="ios-glass-light rounded-2xl p-6 mb-6">
-                    <h3 className="text-lg font-semibold text-black dark:text-white mb-4 flex items-center gap-2">
-                      <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      Commander pour
-                    </h3>
-                    <select 
-                      className="ios-input" 
-                      value={selectedCompany || ""}
-                      onChange={(e) => setSelectedCompany(e.target.value || null)}
-                    >
-                      <option value="">🟢 Mon compte personnel</option>
-                      <optgroup label="🏢 Mes entreprises">
-                        {companies.map(company => (
-                          <option key={company.id} value={company.id}>
-                            {company.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
-                  </div>
-                )}
+                <div className="ios-glass-light rounded-2xl p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-black dark:text-white mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Type de commande
+                  </h3>
+                  
+                  {loadingCompanies ? (
+                    <div className="flex items-center gap-2 text-black/60 dark:text-white/60">
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      <span>Chargement des entreprises...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <select 
+                        className="ios-input mb-3" 
+                        value={selectedCompany || ""}
+                        onChange={(e) => setSelectedCompany(e.target.value || null)}
+                      >
+                        <option value="">👤 Commande personnelle</option>
+                        {companies.length > 0 && (
+                          <optgroup label="🏢 Mes entreprises">
+                            {companies.map(company => (
+                              <option key={company.id} value={company.id}>
+                                🏢 {company.name} ({company.role})
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </select>
+                      
+                      {selectedCompany ? (
+                        <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-medium">Commande d'entreprise</span>
+                          </div>
+                          <p className="text-blue-600 dark:text-blue-400 text-xs mt-1">
+                            Cette commande sera rattachée à votre entreprise
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span className="font-medium">Commande personnelle</span>
+                          </div>
+                          <p className="text-green-600 dark:text-green-400 text-xs mt-1">
+                            Cette commande sera rattachée à votre compte personnel
+                          </p>
+                        </div>
+                      )}
+                      
+                      {companies.length === 0 && !loadingCompanies && (
+                        <div className="text-black/60 dark:text-white/60 text-sm flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Aucune entreprise disponible - Commande personnelle uniquement</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
                 
                 {/* Actions */}
                 <div className="space-y-3">

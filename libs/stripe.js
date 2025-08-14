@@ -1,6 +1,5 @@
 import Stripe from "stripe";
 
-// This is used to create a Stripe Checkout for one-time payments. It's usually triggered with the <ButtonCheckout /> component. Webhooks are used to update the user's state in the database.
 export const createCheckout = async ({
   priceId,
   mode,
@@ -19,8 +18,6 @@ export const createCheckout = async ({
   } else {
     if (mode === "payment") {
       extraParams.customer_creation = "always";
-      // The option below costs 0.4% (up to $2) per invoice. Alternatively, you can use https://zenvoice.io/ to create unlimited invoices automatically.
-      // extraParams.invoice_creation = { enabled: true };
       extraParams.payment_intent_data = { setup_future_usage: "on_session" };
     }
     if (user?.email) {
@@ -54,7 +51,6 @@ export const createCheckout = async ({
   return stripeSession.url;
 };
 
-// This is used to create Customer Portal sessions, so users can manage their subscriptions (payment methods, cancel, etc..)
 export const createCustomerPortal = async ({ customerId, returnUrl }) => {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -71,7 +67,6 @@ export const createCustomerPortal = async ({ customerId, returnUrl }) => {
   }
 };
 
-// This is used to get the uesr checkout session and populate the data so we get the planId the user subscribed to
 export const findCheckoutSession = async (sessionId) => {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);

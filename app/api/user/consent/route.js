@@ -59,6 +59,16 @@ export async function GET(request) {
       thirdParty: userData.consentThirdParty,
     };
     
+    console.log('🔍 Données utilisateur depuis DB:', {
+      userId: userData.id,
+      consentMarketing: userData.consentMarketing,
+      consentAnalytics: userData.consentAnalytics,
+      consentThirdParty: userData.consentThirdParty,
+      dataRetentionPeriod: userData.dataRetentionPeriod
+    });
+    
+    console.log('📤 Consentements formatés envoyés:', consent);
+    
     // Return consent data and history
     return NextResponse.json({
       consent,

@@ -6,31 +6,19 @@ import { writeFile } from "fs/promises";
 import { join } from "path";
 import { v4 as uuidv4 } from "uuid";
 
-// Helper function to process file uploads
 async function saveFile(file) {
-  // Create an array buffer from the file
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-
-  // Create a unique filename
   const originalName = file.name;
   const extension = originalName.split('.').pop();
   const filename = `${uuidv4()}.${extension}`;
-  
-  // Define path where the file will be saved
   const path = join(process.cwd(), 'public/uploads', filename);
-
-  // Write the file to the filesystem
   await writeFile(path, buffer);
-
-  // Return the public URL
   return `/uploads/${filename}`;
 }
 
-// POST /api/admin/articles - Create a new article
 export async function POST(request) {
   try {
-    // Check if user is authenticated and is an admin
     const session = await getServerSession(authOptions);
     
     if (!session) {
@@ -52,38 +40,92 @@ export async function POST(request) {
       );
     }
 
-    // Parse the multipart form data
     const formData = await request.formData();
     const title = formData.get('title');
     const description = formData.get('description');
-    const category = formData.get('category');
+    const categoryId = formData.get('categoryId');
     const imageFile = formData.get('image');
     const price = formData.get('price');
+    const stock = formData.get('stock');
+    const subscriptionDuration = formData.get('subscriptionDuration');
+    const carouselImageCount = parseInt(formData.get('carouselImageCount') || '0');
+    const specificationsJson = formData.get('specifications');
 
-    // Validate required fields
-    if (!title || !description || !category) {
+    if (!title || !description || !categoryId) {
       return NextResponse.json(
-        { message: "Title, description, and category are required." },
+        { message: "Title, description, and categoryId are required." },
         { status: 400 }
       );
     }
 
-    // Process the image file if provided
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId }
+    });
+
+    if (!category) {
+      return NextResponse.json(
+        { message: "Category not found." },
+        { status: 404 }
+      );
+    }
+
     let imagePath = null;
     if (imageFile && imageFile.size > 0) {
       imagePath = await saveFile(imageFile);
     }
 
-    // Create the article
+    const carouselImages = [];
+    for (let i = 0; i < carouselImageCount; i++) {
+      const carouselImageFile = formData.get(`carouselImage_${i}`);
+      const carouselImageAlt = formData.get(`carouselImageAlt_${i}`) || '';
+      
+      if (carouselImageFile && carouselImageFile.size > 0) {
+        const imagePath = await saveFile(carouselImageFile);
+        carouselImages.push({
+          url: imagePath,
+          alt: carouselImageAlt
+        });
+      }
+    }
+
+    let specifications = [];
+    if (specificationsJson) {
+      try {
+        specifications = JSON.parse(specificationsJson);
+      } catch (error) {
+        console.error('Error parsing specifications:', error);
+      }
+    }
+
     const article = await prisma.articles.create({
       data: {
         title,
         description,
-        category,
+        categoryId,
+        category: category.name,
         image: imagePath,
+        images: carouselImages.length > 0 ? JSON.stringify(carouselImages) : null,
         price: price ? parseFloat(price) : null,
+        stock: stock ? parseInt(stock) : 0,
+        subscriptionDuration: subscriptionDuration || null,
       },
+      include: {
+        categoryObj: true
+      }
     });
+
+    if (specifications.length > 0) {
+      await Promise.all(
+        specifications.map(specId =>
+          prisma.articleSpecification.create({
+            data: {
+              articleId: article.id,
+              technicalSpecificationId: specId
+            }
+          })
+        )
+      );
+    }
 
     return NextResponse.json(article, { status: 201 });
   } catch (error) {
@@ -95,12 +137,10 @@ export async function POST(request) {
   }
 }
 
-// GET /api/admin/articles - Get all articles
 export async function GET(request) {
 
   console.log(request);
   try {
-    // Check if user is authenticated and is an admin
     const session = await getServerSession(authOptions);
     
     if (!session) {
@@ -122,7 +162,6 @@ export async function GET(request) {
       );
     }
 
-    // Get all articles
     const articles = await prisma.articles.findMany({
       orderBy: { createdAt: 'desc' }
     });

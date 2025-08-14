@@ -179,18 +179,26 @@ export default async function AdminArticlesPage() {
                       {article.description || "Aucune description"}
                     </p>
                     
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="product-price">
                         {article.price?.toFixed(2)} €
                       </div>
-                      <div className="flex gap-2">
-                        <Link 
-                          href={`/dashboard/admin/articles/edit/${article.id}`}
-                          className="text-xs px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full hover:bg-blue-500/30 transition-colors"
-                        >
-                          Éditer
-                        </Link>
+                      <div className={`text-xs px-2 py-1 rounded-full ${
+                        article.stock > 0 
+                          ? 'bg-green-500/20 text-green-300' 
+                          : 'bg-red-500/20 text-red-300'
+                      }`}>
+                        Stock: {article.stock || 0}
                       </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Link 
+                        href={`/dashboard/admin/articles/edit/${article.id}`}
+                        className="text-xs px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full hover:bg-blue-500/30 transition-colors"
+                      >
+                        Éditer
+                      </Link>
                     </div>
                   </div>
                 </div>

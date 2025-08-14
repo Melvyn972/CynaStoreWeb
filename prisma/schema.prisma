@@ -64,6 +64,7 @@ model User {
   ownedCompanies    Company[] // Companies created by this user
   companyMemberships CompanyMember[] // Companies this user is a member of
   companyInvitations CompanyInvitation[] // Invitations received by this user
+  emailChangeRequests EmailChangeRequest[]
 }
 
 enum UserRole {
@@ -86,18 +87,109 @@ model Lead {
   updatedAt DateTime @updatedAt
 }
 
+model Category {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  image       String?
+  displayOrder Int       @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  articles    Articles[] // Articles in this category
+}
+
+model CarouselSlide {
+  id          String     @id @default(cuid())
+  title       String
+  subtitle    String?
+  description String?
+  image       String
+  buttonText  String?
+  buttonLink  String?
+  displayOrder Int       @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model ContentBlock {
+  id          String     @id @default(cuid())
+  title       String
+  content     String     // Rich text content
+  image       String?
+  blockType   String     @default("text") // text, image, text_image, etc.
+  displayOrder Int       @default(0)
+  isActive    Boolean    @default(true)
+  pageLocation String    @default("homepage") // homepage, about, etc.
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
 model Articles {
   id          String     @id @default(cuid())
   title       String
   description String
   image       String?
-  category    String
+  images      String?    // JSON string array of image URLs
+  categoryId  String?    // Reference to Category
+  category    String     // Keep old category field for backward compatibility
   price       Float      @default(0)
+  stock       Int        @default(0) // Quantity in stock
+  subscriptionDuration String? // Optional subscription duration (e.g., "1 mois", "3 mois", "1 an")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  
+  categoryObj Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   purchases   Purchase[] // Users who purchased this article
   cartItems   Cart[] // Items in users' carts
   companyPurchases CompanyPurchase[] // Company purchases of this article
+  specifications ArticleSpecification[] // Technical specifications
+}
+
+model EmailChangeRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  newEmail  String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ContactRequest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TechnicalSpecification {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  articles    ArticleSpecification[]
+}
+
+model ArticleSpecification {
+  id                        String @id @default(cuid())
+  articleId                 String
+  technicalSpecificationId  String
+  
+  article                   Articles              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  technicalSpecification    TechnicalSpecification @relation(fields: [technicalSpecificationId], references: [id], onDelete: Cascade)
+  
+  @@unique([articleId, technicalSpecificationId])
 }
 
 model Purchase {

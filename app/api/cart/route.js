@@ -94,6 +94,15 @@ export async function POST(request) {
       );
     }
 
+    // Check stock availability
+    const currentStock = product.stock || 0;
+    if (currentStock <= 0) {
+      return NextResponse.json(
+        { message: 'Product is out of stock' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     // Check if item already exists in cart
     const existingCartItem = await prisma.cart.findFirst({
       where: {
@@ -101,6 +110,20 @@ export async function POST(request) {
         productId,
       },
     });
+
+    const newTotalQuantity = existingCartItem 
+      ? existingCartItem.quantity + quantity 
+      : quantity;
+
+    // Verify we don't exceed available stock
+    if (newTotalQuantity > currentStock) {
+      return NextResponse.json(
+        { 
+          message: `Only ${currentStock} units available. You currently have ${existingCartItem?.quantity || 0} in your cart.` 
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
     let cartItem;
 
@@ -111,7 +134,7 @@ export async function POST(request) {
           id: existingCartItem.id,
         },
         data: {
-          quantity: existingCartItem.quantity + quantity,
+          quantity: newTotalQuantity,
         },
       });
     } else {

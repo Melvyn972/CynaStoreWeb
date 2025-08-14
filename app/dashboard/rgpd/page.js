@@ -33,9 +33,13 @@ export default function RGPDPage() {
         const response = await fetch("/api/user/consent");
         if (response.ok) {
           const data = await response.json();
+          console.log('📊 Données de consentement récupérées:', data);
+          console.log('🔧 Consentements:', data.consent);
           setConsentSettings(data.consent);
           setDataRetentionPeriod(data.dataRetentionPeriod);
           setConsentHistory(data.history || []);
+        } else {
+          console.error('❌ Erreur lors de la récupération des consentements:', response.status);
         }
       } catch (err) {
         console.error("Error loading consent settings:", err);

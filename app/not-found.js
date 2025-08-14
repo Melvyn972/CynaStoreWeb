@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-// Page 404 simple avec un bouton pour retourner à l'accueil
 export default function Custom404() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12 bg-base-200 dark:bg-[#0B0F1C]">

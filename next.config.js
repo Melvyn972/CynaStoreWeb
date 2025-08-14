@@ -3,31 +3,23 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 const nextConfig = {
-  reactStrictMode: true,
-  
-  // Désactiver temporairement ESLint pour les tests d'optimisation
+  reactStrictMode: false,
   eslint: {
     ignoreDuringBuilds: true,
   },
-  
-  // Configuration pour améliorer l'hydratation et optimiser les imports
   experimental: {
-    optimizePackageImports: ['react-icons', 'lucide-react', '@headlessui/react'],
-    // Améliorer le cache pour le back/forward
+    optimizePackageImports: ['react-icons', 'lucide-react', '@headlessui/react', 'framer-motion', 'react-hot-toast'],
     scrollRestoration: true,
+    forceSwcTransforms: true,
+    optimisticClientCache: true,
+    esmExternals: 'loose',
   },
-  
-  // Configuration pour réduire les problèmes d'hydratation et minifier
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
-    // Minifier CSS automatiquement
     styledComponents: true,
   },
-  
-  // Configuration d'optimisation des images
   images: {
     domains: [
-      // NextJS <Image> component needs to whitelist domains for src={}
       "lh3.googleusercontent.com",
       "pbs.twimg.com",
       "images.unsplash.com",
@@ -36,13 +28,10 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     formats: ['image/webp', 'image/avif'],
-    minimumCacheTTL: 86400, // 24 heures pour améliorer le cache
-    // Optimiser les images pour le LCP
+    minimumCacheTTL: 86400,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  
-  // Configuration avancée pour optimiser les chunks et réduire le JavaScript inutilisé
   webpack: (config, { isServer, dev }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -51,8 +40,6 @@ const nextConfig = {
         net: false,
         tls: false,
       };
-      
-      // Optimisation du chunking pour réduire le JavaScript inutilisé
       if (!dev) {
         config.optimization = {
           ...config.optimization,
@@ -76,24 +63,37 @@ const nextConfig = {
         };
       }
     }
-    
-    // Minification CSS/JS avancée
     if (!dev) {
       config.optimization.minimize = true;
     }
-    
     return config;
   },
-  
-  // Headers pour améliorer le cache et éviter les problèmes de back/forward cache
   async headers() {
     return [
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'no-cache, no-store, must-revalidate',
           },
           {
             key: 'X-Content-Type-Options',
@@ -109,25 +109,10 @@ const nextConfig = {
           },
         ],
       },
-      {
-        source: '/api/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate',
-          },
-        ],
-      },
     ];
   },
-  
-  // Compression pour réduire la taille des assets
   compress: true,
-  
-  // Configuration pour améliorer le LCP
   output: 'standalone',
-  
-  // Optimiser les polyfills pour éviter le JavaScript legacy
   swcMinify: true,
 };
 

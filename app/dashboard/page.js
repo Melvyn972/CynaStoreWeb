@@ -3,25 +3,54 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import prisma from "@/libs/prisma";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import Image from "next/image";
 import BackgroundEffects from "@/app/components/BackgroundEffects";
+import DashboardClient from "./DashboardClient";
+import LinkPreload from "@/components/LinkPreload";
 
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
   const session = await getServerSession(authOptions);
+  
+  if (!session?.user?.email) {
+    redirect('/auth/login');
+  }
+  
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      image: true,
+    },
   });
 
   const purchases = await prisma.purchase.findMany({
     where: {
       userId: user.id,
     },
-    include: {
-      article: true,
+    select: {
+      id: true,
+      quantity: true,
+      purchaseDate: true,
+      article: {
+        select: {
+          id: true,
+          title: true,
+          price: true,
+          image: true,
+        },
+      },
     },
+    orderBy: {
+      purchaseDate: 'desc',
+    },
+    take: 50, // Limiter à 50 achats récents pour les performances
   });
 
   // Group purchases by article
@@ -59,25 +88,43 @@ export default async function Dashboard() {
   
   const totalItems = purchases.reduce((sum, purchase) => sum + purchase.quantity, 0);
 
-  // Get company information
-  const ownedCompanies = await prisma.company.findMany({
-    where: { ownerId: user.id },
-  });
-
-  const memberCompanies = await prisma.companyMember.findMany({
-    where: { userId: user.id },
-    include: { company: true },
-  });
+  // Get company information - optimisé avec des requêtes parallèles
+  const [ownedCompanies, memberCompanies] = await Promise.all([
+    prisma.company.findMany({
+      where: { ownerId: user.id },
+      select: { id: true, name: true },
+    }),
+    prisma.companyMember.findMany({
+      where: { userId: user.id },
+      select: {
+        company: {
+          select: { id: true, name: true },
+        },
+      },
+    }),
+  ]);
 
   const totalCompanies = ownedCompanies.length + 
-    memberCompanies.filter(m => !ownedCompanies.some(c => c.id === m.companyId)).length;
+    memberCompanies.filter(m => !ownedCompanies.some(c => c.id === m.company.id)).length;
 
-  // Get pending invitations
+  // Get pending invitations - optimisé
   const pendingInvitations = await prisma.companyInvitation.findMany({
     where: { 
       userId: user.id,
       status: "PENDING"
-    }
+    },
+    select: {
+      id: true,
+      company: {
+        select: { id: true, name: true },
+      },
+      role: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 10, // Limiter à 10 invitations récentes
   });
 
   return (
@@ -112,48 +159,13 @@ export default async function Dashboard() {
           </div>
         </div>
         
-        {/* Statistiques rapides */}
-        <div className="ios-grid-4 mb-12 ios-slide-up">
-          <div className="dashboard-card text-center group hover:scale-105 transition-all duration-300">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
-            <div className="dashboard-stat-value">{totalItems}</div>
-            <div className="dashboard-stat-label">Articles achetés</div>
-          </div>
-          
-          <div className="dashboard-card text-center group hover:scale-105 transition-all duration-300">
-            <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
-            <div className="dashboard-stat-value">{totalSpent.toFixed(2)} €</div>
-            <div className="dashboard-stat-label">Total dépensé</div>
-          </div>
-          
-          <div className="dashboard-card text-center group hover:scale-105 transition-all duration-300">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <div className="dashboard-stat-value">{totalCompanies}</div>
-            <div className="dashboard-stat-label">Entreprises</div>
-          </div>
-          
-          <div className="dashboard-card text-center group hover:scale-105 transition-all duration-300">
-            <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div className="dashboard-stat-value">{pendingInvitations.length}</div>
-            <div className="dashboard-stat-label">Invitations</div>
-          </div>
-        </div>
+        {/* Statistiques rapides - Composant client pour la synchronisation */}
+        <DashboardClient initialData={{
+          totalItems,
+          totalSpent,
+          totalCompanies,
+          pendingInvitations: pendingInvitations.length
+        }} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* Profil utilisateur moderne */}
@@ -250,12 +262,12 @@ export default async function Dashboard() {
                   <div className="text-sm text-black/60 dark:text-white/60">Créées</div>
                 </div>
                 <div className="text-center p-4 ios-glass-light rounded-2xl">
-                  <div className="text-2xl font-bold text-indigo-400 mb-1">{memberCompanies.length}</div>
+                  <div className="text-2xl font-bold text-indigo-400 mb-1">{memberCompanies.filter(m => !ownedCompanies.some(c => c.id === m.company.id)).length}</div>
                   <div className="text-sm text-black/60 dark:text-white/60">Membre</div>
                 </div>
               </div>
               
-              <Link 
+              <LinkPreload 
                 href="/dashboard/companies" 
                 className="w-full ios-button-secondary justify-center"
               >
@@ -263,7 +275,7 @@ export default async function Dashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 Gérer mes entreprises
-              </Link>
+              </LinkPreload>
             </div>
 
             {/* Boutique et commandes */}

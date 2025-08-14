@@ -8,6 +8,7 @@ import prisma from "@/libs/prisma";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AddToCartButton from "@/components/AddToCartButton";
+import ProductImageCarousel from "@/components/ProductImageCarousel";
 import BackgroundEffects from "@/app/components/BackgroundEffects";
 
 // Génération des métadonnées dynamiques pour chaque article
@@ -37,6 +38,14 @@ export async function generateMetadata({ params }) {
 export default async function ArticleDetail({ params }) {
   const article = await prisma.articles.findUnique({
     where: { id: params.id },
+    include: {
+      categoryObj: true,
+      specifications: {
+        include: {
+          technicalSpecification: true
+        }
+      }
+    }
   });
 
   if (!article) {
@@ -82,38 +91,23 @@ export default async function ArticleDetail({ params }) {
           
           {/* Section principale */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 ios-slide-up">
-            {/* Galerie d'images */}
-            <div className="dashboard-card">
-              <div className="aspect-square relative rounded-2xl overflow-hidden">
-                {article.image ? (
-                  <Image
-                    src={article.image}
-                    alt={article.title}
-                    fill
-                    className="object-cover hover:scale-105 transition-transform duration-500"
-                    priority
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-500 via-purple-400 to-indigo-500 flex items-center justify-center">
-                    <span className="text-white text-8xl font-bold">{article.title.charAt(0)}</span>
-                  </div>
-                )}
-                
-                {/* Badge catégorie */}
-                <div className="absolute top-6 right-6">
-                  <span className="px-4 py-2 ios-glass-light text-white text-sm font-medium rounded-full backdrop-blur-md border border-white/20">
-                    {article.category}
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Carrousel d'images */}
+            <ProductImageCarousel 
+              title={article.title}
+              mainImage={article.image}
+              imagesJson={article.images}
+            />
             
             {/* Informations du produit */}
             <div className="dashboard-card">
               <div className="space-y-6">
                 {/* Titre et évaluation */}
                 <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-sm font-medium rounded-full border border-purple-500/30">
+                      {article.category}
+                    </span>
+                  </div>
                   <h1 className="text-3xl md:text-4xl font-bold text-black dark:text-white mb-4">
                     {article.title}
                   </h1>
@@ -161,19 +155,59 @@ export default async function ArticleDetail({ params }) {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center py-2 border-b border-white/10">
                       <span className="text-white/70">Disponibilité</span>
-                      <span className="flex items-center gap-2 text-emerald-400 font-medium">
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-                        En stock
+                      <span className={`flex items-center gap-2 font-medium ${
+                        (article.stock || 0) > 0 ? 'text-emerald-400' : 'text-red-400'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          (article.stock || 0) > 0 ? 'bg-emerald-400' : 'bg-red-400'
+                        }`}></div>
+                        {(article.stock || 0) > 0 
+                          ? `En stock (${article.stock || 0} unités)` 
+                          : 'Épuisé'
+                        }
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-white/10">
                       <span className="text-white/70">Catégorie</span>
                       <span className="text-white font-medium">{article.category}</span>
                     </div>
+                    {article.subscriptionDuration && (
+                      <div className="flex justify-between items-center py-2 border-b border-white/10">
+                        <span className="text-white/70">Durée</span>
+                        <span className="text-white font-medium">{article.subscriptionDuration}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center py-2">
                       <span className="text-white/70">Livraison</span>
                       <span className="text-white font-medium">2-4 jours ouvrables</span>
                     </div>
+                    
+                    {/* Spécifications techniques */}
+                    {article.specifications && article.specifications.length > 0 && (
+                      <>
+                        <div className="pt-4 border-t border-white/10">
+                          <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                            </svg>
+                            Caractéristiques techniques
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {article.specifications.map((spec) => (
+                              <div 
+                                key={spec.id}
+                                className="flex items-center gap-2 py-1"
+                              >
+                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div>
+                                <span className="text-white/80 text-sm">
+                                  {spec.technicalSpecification.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
                 
@@ -191,7 +225,7 @@ export default async function ArticleDetail({ params }) {
                   </div>
                   
                   <div className="space-y-3">
-                    <AddToCartButton articleId={article.id} title={article.title} />
+                    <AddToCartButton articleId={article.id} title={article.title} stock={article.stock || 0} />
                     <button className="w-full ios-button-secondary justify-center">
                       <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />

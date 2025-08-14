@@ -96,7 +96,7 @@ export async function POST(request) {
 
     const data = await request.json();
 
-    if (!data.name || !data.siret) {
+    if (!data.name || (!data.siret && !data.siretNumber)) {
       return NextResponse.json(
         { error: "Le nom de l'entreprise et le SIRET sont requis" },
         { status: 400, headers: corsHeaders }
@@ -113,7 +113,7 @@ export async function POST(request) {
         email: data.email || "",
         website: data.website || "",
         vatNumber: data.tva || "",
-        siretNumber: data.siret || "",
+        siretNumber: data.siret || data.siretNumber || "",
         owner: {
           connect: { id: user.id },
         },

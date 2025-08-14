@@ -4,6 +4,8 @@ import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
 import Footer from "@/components/Footer";
 import BackgroundEffects from "@/app/components/BackgroundEffects";
+import DynamicContent from "@/components/DynamicContent";
+import { Suspense } from "react";
 
 export const metadata = getSEOTags({
   title: `À propos | ${config.appName}`,
@@ -184,6 +186,11 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
+        
+        {/* Blocs de contenu dynamiques pour la page À propos */}
+        <Suspense fallback={<div className="h-32 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-lg mx-4 my-8"></div>}>
+          <DynamicContent pageLocation="about" />
+        </Suspense>
       </main>
 
       <Footer />

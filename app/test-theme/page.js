@@ -2,6 +2,7 @@
 
 import BackgroundEffects from '../components/BackgroundEffects';
 import ThemeToggle from '../components/ThemeToggle';
+import Footer from '@/components/Footer';
 
 export default function TestTheme() {
   return (
@@ -143,6 +144,8 @@ export default function TestTheme() {
           
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 } 

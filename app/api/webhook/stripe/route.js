@@ -17,7 +17,6 @@ export async function POST(req) {
   let eventType;
   let event;
 
-  // verify Stripe event is legit
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
@@ -31,10 +30,6 @@ export async function POST(req) {
   try {
     switch (eventType) {
       case "checkout.session.completed": {
-        // First payment is successful and a subscription is created (if mode was set to "subscription" in ButtonCheckout)
-        // or a one-time payment is completed (if mode was set to "payment")
-        // ✅ Grant access to the product
-
         const session = await findCheckoutSession(data.object.id);
 
         const customerId = session?.customer;
@@ -42,18 +37,15 @@ export async function POST(req) {
         const userId = data.object.client_reference_id;
         const plan = configFile.stripe.plans.find((p) => p.priceId === priceId);
 
-        // Check if this is a cart purchase by looking for cart_items in metadata
         const cartItems = data.object.metadata?.cart_items ? 
           JSON.parse(data.object.metadata.cart_items) : null;
 
         if (cartItems) {
-          // This is a cart purchase
           if (!userId) {
             console.error("No user ID found for cart purchase");
             throw new Error("No user ID found for cart purchase");
           }
 
-          // Get the user
           const user = await prisma.user.findUnique({
             where: { id: userId }
           });
@@ -63,7 +55,6 @@ export async function POST(req) {
             throw new Error("User not found for cart purchase");
           }
 
-          // Update user's customerId if not already set
           if (!user.customerId && customerId) {
             await prisma.user.update({
               where: { id: user.id },
@@ -71,7 +62,6 @@ export async function POST(req) {
             });
           }
 
-          // Create purchase records for each cart item
           await Promise.all(cartItems.map(async (item) => {
             await prisma.purchase.create({
               data: {
@@ -84,15 +74,12 @@ export async function POST(req) {
             });
           }));
 
-          // Clear the user's cart after successful purchase
           await prisma.cart.deleteMany({
             where: { userId: user.id }
           });
 
           break;
         }
-
-        // If not a cart purchase, continue with the existing logic for single article purchase
         if (!plan) break;
 
         const customer = await stripe.customers.retrieve(customerId);

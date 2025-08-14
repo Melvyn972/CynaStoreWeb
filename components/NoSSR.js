@@ -1,19 +1,31 @@
-"use client";
+import { useEffect, useState } from 'react';
 
-import { useState, useEffect } from 'react';
-
-const NoSSR = ({ children, fallback = null }) => {
-  const [hasMounted, setHasMounted] = useState(false);
+/**
+ * Composant pour empêcher le rendu côté serveur et éviter les problèmes d'hydratation
+ */
+export default function NoSSR({ children, fallback = null }) {
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setHasMounted(true);
+    setIsClient(true);
   }, []);
 
-  if (!hasMounted) {
+  if (!isClient) {
     return fallback;
   }
 
   return children;
-};
+}
 
-export default NoSSR; 
+/**
+ * HOC pour wrapper un composant avec NoSSR
+ */
+export function withNoSSR(Component, fallback) {
+  return function WrappedComponent(props) {
+    return (
+      <NoSSR fallback={fallback}>
+        <Component {...props} />
+      </NoSSR>
+    );
+  };
+}

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import apiClient from "@/libs/api";
 
 export default function CheckoutPage() {
@@ -30,7 +31,21 @@ export default function CheckoutPage() {
         }
         
         const companyData = await response.json();
-        setCompany(companyData);
+        console.log('Checkout - Company API response:', companyData);
+        
+        // Handle the nested response structure and field mapping
+        const company = companyData.company || companyData;
+        console.log('Checkout - Extracted company:', company);
+        
+        // Map API fields to expected frontend fields
+        const mappedCompany = {
+          ...company,
+          vatNumber: company.vatNumber || company.tva,
+          siretNumber: company.siretNumber || company.siret
+        };
+        
+        console.log('Checkout - Mapped company:', mappedCompany);
+        setCompany(mappedCompany);
       } catch (error) {
         console.error('Error fetching company details:', error);
         toast.error("Erreur lors du chargement des détails de l'entreprise");
@@ -46,10 +61,9 @@ export default function CheckoutPage() {
     const fetchCart = async () => {
       setLoading(true);
       try {
-        // If company ID is provided, fetch company cart
-        const endpoint = companyId 
-          ? `/api/cart/company?companyId=${companyId}`
-          : '/api/cart';
+        // Use personal cart for both personal and company orders
+        // The company selection affects the order processing, not the cart itself
+        const endpoint = '/api/cart';
           
         const response = await fetch(endpoint);
         
@@ -143,19 +157,57 @@ export default function CheckoutPage() {
   };
 
   const handleCheckout = async () => {
-    setIsProcessing(true);
-    try {
-      // Create line items for Stripe checkout
-      const lineItems = cart.map(item => {
-        const productId = item.productId || item.product?.id;
-        const article = articles[productId];
-        return {
-          productId: productId,
-          quantity: item.quantity,
-          price: article.price
-        };
-      });
+    // Validations avant traitement
+    if (!Array.isArray(cart) || cart.length === 0) {
+      toast.error("Votre panier est vide");
+      return;
+    }
 
+    // Vérifier la disponibilité des produits
+    const unavailableItems = [];
+    const lineItems = [];
+
+    for (const item of cart) {
+      const productId = item.productId || item.product?.id;
+      const article = articles[productId];
+      
+      if (!article) {
+        unavailableItems.push(`Produit non trouvé: ${productId}`);
+        continue;
+      }
+
+      if ((article.stock || 0) < item.quantity) {
+        unavailableItems.push(`${article.title}: seulement ${article.stock || 0} en stock, vous en demandez ${item.quantity}`);
+        continue;
+      }
+
+      lineItems.push({
+        productId: productId,
+        quantity: item.quantity,
+        price: article.price
+      });
+    }
+
+    if (unavailableItems.length > 0) {
+      toast.error(`Articles indisponibles:\n${unavailableItems.join('\n')}`);
+      return;
+    }
+
+    if (lineItems.length === 0) {
+      toast.error("Aucun article valide dans votre panier");
+      return;
+    }
+
+    // Calculer le total pour vérification
+    const total = lineItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    if (total <= 0) {
+      toast.error("Le montant total doit être supérieur à 0€");
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    try {
       // Create Stripe checkout session
       const endpoint = companyId
         ? '/api/stripe/create-company-checkout'
@@ -182,7 +234,16 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      toast.error("Erreur lors de la création de la session de paiement");
+      
+      // Messages d'erreur plus spécifiques
+      if (error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else if (error.message.includes('fetch')) {
+        toast.error("Erreur de connexion. Vérifiez votre connexion internet.");
+      } else {
+        toast.error("Erreur lors de la création de la session de paiement. Veuillez réessayer.");
+      }
+      
       setIsProcessing(false);
     }
   };
@@ -203,18 +264,39 @@ export default function CheckoutPage() {
     return (
       <div className="container mx-auto px-4 py-20 min-h-screen">
         <Header />
-        <h1 className="text-3xl font-bold mt-16 mb-8">Finalisation de la commande</h1>
+        <h1 className="text-3xl font-bold mt-16 mb-8">
+          Finalisation de la commande
+          {company && (
+            <span className="text-xl font-normal ml-2 text-gray-600 dark:text-gray-400">
+              pour {company.name}
+            </span>
+          )}
+        </h1>
         <div className="flex flex-col items-center justify-center py-12 bg-base-200 dark:bg-gray-800 rounded-lg">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-base-content/50 dark:text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          <p className="text-base-content/70 dark:text-gray-300 text-xl mb-6">Votre panier est vide</p>
-          <Link 
-            href="/articles" 
-            className="btn btn-primary"
-          >
-            Continuer mes achats
-          </Link>
+          <p className="text-base-content/70 dark:text-gray-300 text-xl mb-2">Votre panier est vide</p>
+          {companyId && (
+            <p className="text-sm text-orange-600 dark:text-orange-400 mb-4 text-center">
+              💡 Pour commander en mode entreprise, ajoutez d'abord des articles à votre panier personnel,<br/>
+              puis sélectionnez l'entreprise au moment du paiement.
+            </p>
+          )}
+          <div className="flex gap-4">
+            <Link 
+              href="/articles" 
+              className="btn btn-primary"
+            >
+              Continuer mes achats
+            </Link>
+            <Link 
+              href="/cart" 
+              className="btn btn-secondary"
+            >
+              Retour au panier
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -357,6 +439,8 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 } 

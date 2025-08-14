@@ -5,13 +5,11 @@ import Link from "next/link";
 
 const Hero = () => {
   const scrollToNextSection = (e) => {
-    // Feedback visuel du clic
     e.target.closest('button').style.transform = 'scale(0.95)';
     setTimeout(() => {
       e.target.closest('button').style.transform = '';
     }, 150);
 
-    // Option 1: Chercher la section Problem spécifiquement
     const problemSection = document.querySelector('#problem');
     if (problemSection) {
       problemSection.scrollIntoView({ 
@@ -21,7 +19,6 @@ const Hero = () => {
       return;
     }
 
-    // Option 2: Défiler d'une hauteur d'écran vers le bas
     const viewportHeight = window.innerHeight;
     window.scrollTo({
       top: viewportHeight,

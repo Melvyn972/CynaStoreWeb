@@ -22,30 +22,36 @@ export const ThemeProvider = ({ children }) => {
   
   // Effet pour initialiser le thème depuis localStorage ou les préférences système
   useEffect(() => {
-    try {
-      // Récupération du thème depuis localStorage s'il existe
-      const storedTheme = localStorage.getItem("theme");
-      
-      let initialTheme = "light"; // Valeur par défaut
-      
-      if (storedTheme && (storedTheme === "dark" || storedTheme === "light")) {
-        initialTheme = storedTheme;
-      } else if (typeof window !== 'undefined' && window.matchMedia) {
-        // Vérifier les préférences système
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        initialTheme = prefersDark ? "dark" : "light";
+    const initializeTheme = () => {
+      try {
+        // Récupération du thème depuis localStorage s'il existe
+        const storedTheme = typeof window !== 'undefined' ? localStorage.getItem("theme") : null;
+        
+        let initialTheme = "light"; // Valeur par défaut
+        
+        if (storedTheme && (storedTheme === "dark" || storedTheme === "light")) {
+          initialTheme = storedTheme;
+        } else if (typeof window !== 'undefined' && window.matchMedia) {
+          // Vérifier les préférences système
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          initialTheme = prefersDark ? "dark" : "light";
+        }
+        
+        setTheme(initialTheme);
+        applyTheme(initialTheme);
+      } catch (error) {
+        console.warn('Error initializing theme:', error);
+        setTheme("light");
+        applyTheme("light");
+      } finally {
+        // Marquer comme monté après l'initialisation
+        setMounted(true);
       }
-      
-      setTheme(initialTheme);
-      applyTheme(initialTheme);
-    } catch (error) {
-      console.warn('Error initializing theme:', error);
-      setTheme("light");
-      applyTheme("light");
-    } finally {
-      // Marquer comme monté après l'initialisation
-      setMounted(true);
-    }
+    };
+
+    // Délai pour éviter les problèmes d'hydratation
+    const timer = setTimeout(initializeTheme, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Effet pour appliquer le thème quand il change
@@ -115,7 +121,11 @@ export const ThemeProvider = ({ children }) => {
   
   return (
     <ThemeContext.Provider value={value}>
-      {children}
+      {mounted ? children : (
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+        </div>
+      )}
     </ThemeContext.Provider>
   );
 }; 

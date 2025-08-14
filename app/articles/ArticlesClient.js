@@ -1,40 +1,173 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import BackgroundEffects from "@/app/components/BackgroundEffects";
+import { useHydration } from "@/hooks/useHydration";
 
 const ArticlesClient = ({ articles: initialArticles }) => {
+  const isHydrated = useHydration();
+  const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [sortBy, setSortBy] = useState("name");
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [exactMatch, setExactMatch] = useState(false);
+  const [selectedSpecs, setSelectedSpecs] = useState([]);
+  const [selectedDuration, setSelectedDuration] = useState("Toutes");
+  const [categories, setCategories] = useState([]);
+  const [specifications, setSpecifications] = useState([]);
 
-  // Récupérer toutes les catégories uniques
-  const categories = useMemo(() => {
-    const cats = [...new Set(initialArticles.map(article => article.category))];
-    return ["Tous", ...cats];
+  useEffect(() => {
+    if (isHydrated) {
+      fetchCategoriesAndSpecs();
+    }
+  }, [isHydrated]);
+
+  useEffect(() => {
+    if (isHydrated && searchParams) {
+      const categoryFromUrl = searchParams.get('category');
+      if (categoryFromUrl) {
+        const decodedCategory = decodeURIComponent(categoryFromUrl);
+        if (decodedCategory !== selectedCategory) {
+          setSelectedCategory(decodedCategory);
+        }
+      } else if (selectedCategory !== "Tous") {
+        // Si pas de paramètre category dans l'URL, réinitialiser à "Tous"
+        setSelectedCategory("Tous");
+      }
+    }
+  }, [isHydrated, searchParams, selectedCategory]);
+
+  const fetchCategoriesAndSpecs = async () => {
+    try {
+      // Récupérer les spécifications
+      const specsResponse = await fetch('/api/admin/specifications');
+      if (specsResponse.ok) {
+        const specsData = await specsResponse.json();
+        setSpecifications(specsData.filter(spec => spec.isActive));
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des spécifications:', error);
+    }
+
+    // Extraire les catégories des articles existants
+    if (initialArticles.length > 0) {
+      const cats = [...new Set(initialArticles.map(article => 
+        article.categoryObj?.name || article.category
+      ).filter(Boolean))];
+      setCategories(["Tous", ...cats]);
+    }
+  };
+
+  // Récupérer la fourchette de prix min/max
+  const priceExtreme = useMemo(() => {
+    if (initialArticles.length === 0) return { min: 0, max: 1000 };
+    const prices = initialArticles.map(a => a.price || 0);
+    return {
+      min: Math.floor(Math.min(...prices)),
+      max: Math.ceil(Math.max(...prices))
+    };
   }, [initialArticles]);
+
+  // Récupérer les durées d'abonnement disponibles
+  const availableDurations = useMemo(() => {
+    const durations = [...new Set(initialArticles.map(article => article.subscriptionDuration))].filter(Boolean);
+    return ["Toutes", "Aucune (produit unique)", ...durations.sort()];
+  }, [initialArticles]);
+
+  // Mettre à jour la fourchette de prix si nécessaire
+  useEffect(() => {
+    if (priceRange[0] === 0 && priceRange[1] === 10000) {
+      setPriceRange([priceExtreme.min, priceExtreme.max]);
+    }
+  }, [priceExtreme]);
 
   // Filtrer et trier les articles
   const filteredArticles = useMemo(() => {
+    // Utiliser directement les paramètres URL pour être sûr d'avoir la dernière valeur
+    const categoryFromUrl = searchParams?.get('category');
+    const currentCategory = categoryFromUrl ? decodeURIComponent(categoryFromUrl) : selectedCategory;
+    
     let filtered = initialArticles.filter(article => {
-      const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           article.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "Tous" || article.category === selectedCategory;
-      const matchesPrice = article.price >= priceRange[0] && article.price <= priceRange[1];
+      // Filtre de recherche textuelle
+      let matchesSearch = true;
+      if (searchTerm.trim()) {
+        const searchLower = searchTerm.toLowerCase();
+        if (exactMatch) {
+          matchesSearch = article.title.toLowerCase() === searchLower ||
+                          article.description.toLowerCase() === searchLower ||
+                          article.category.toLowerCase() === searchLower ||
+                          article.categoryObj?.name.toLowerCase() === searchLower;
+        } else {
+          matchesSearch = article.title.toLowerCase().includes(searchLower) ||
+                          article.description.toLowerCase().includes(searchLower) ||
+                          article.category.toLowerCase().includes(searchLower) ||
+                          article.categoryObj?.name.toLowerCase().includes(searchLower);
+        }
+      }
       
-      return matchesSearch && matchesCategory && matchesPrice;
+      // Filtre par catégorie
+      const matchesCategory = currentCategory === "Tous" || 
+                              article.categoryObj?.name === currentCategory || 
+                              article.category === currentCategory;
+      
+      // Filtre par prix
+      const matchesPrice = (article.price || 0) >= priceRange[0] && (article.price || 0) <= priceRange[1];
+      
+      // Filtre par stock
+      const matchesStock = !inStockOnly || (article.stock || 0) > 0;
+
+      // Filtre par durée d'abonnement
+      const matchesDuration = selectedDuration === "Toutes" || 
+                              (selectedDuration === "Aucune (produit unique)" && !article.subscriptionDuration) ||
+                              article.subscriptionDuration === selectedDuration;
+
+      // Filtre par spécifications (si on a accès aux specs)
+      let matchesSpecs = true;
+      if (selectedSpecs.length > 0 && article.specifications) {
+        const articleSpecIds = article.specifications.map(spec => spec.technicalSpecificationId);
+        matchesSpecs = selectedSpecs.every(specId => articleSpecIds.includes(specId));
+      }
+      
+      return matchesSearch && matchesCategory && matchesPrice && matchesStock && matchesDuration && matchesSpecs;
     });
+
+
 
     // Trier les articles
     switch (sortBy) {
       case "price-low":
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
         break;
       case "price-high":
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+        break;
+      case "availability":
+        filtered.sort((a, b) => {
+          const aInStock = (a.stock || 0) > 0;
+          const bInStock = (b.stock || 0) > 0;
+          if (aInStock && !bInStock) return -1;
+          if (!aInStock && bInStock) return 1;
+          return (b.stock || 0) - (a.stock || 0);
+        });
+        break;
+      case "duration":
+        filtered.sort((a, b) => {
+          const durationOrder = ["1 mois", "3 mois", "6 mois", "1 an", "2 ans", "3 ans", "Vie"];
+          const aIndex = a.subscriptionDuration ? durationOrder.indexOf(a.subscriptionDuration) : -1;
+          const bIndex = b.subscriptionDuration ? durationOrder.indexOf(b.subscriptionDuration) : -1;
+          
+          // Les produits sans abonnement viennent en premier
+          if (aIndex === -1 && bIndex === -1) return 0;
+          if (aIndex === -1) return -1;
+          if (bIndex === -1) return 1;
+          
+          return aIndex - bIndex;
+        });
         break;
       case "name":
       default:
@@ -43,204 +176,349 @@ const ArticlesClient = ({ articles: initialArticles }) => {
     }
 
     return filtered;
-  }, [initialArticles, searchTerm, selectedCategory, priceRange, sortBy]);
+  }, [initialArticles, searchTerm, selectedCategory, priceRange, sortBy, inStockOnly, exactMatch, selectedSpecs, selectedDuration, searchParams]);
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("Tous");
+    setPriceRange([priceExtreme.min, priceExtreme.max]);
+    setSortBy("name");
+    setInStockOnly(false);
+    setExactMatch(false);
+    setSelectedSpecs([]);
+    setSelectedDuration("Toutes");
+  };
+
+  const hasActiveFilters = () => {
+    return searchTerm.trim() !== "" || 
+           selectedCategory !== "Tous" || 
+           priceRange[0] !== priceExtreme.min || 
+           priceRange[1] !== priceExtreme.max ||
+           inStockOnly ||
+           exactMatch ||
+           selectedSpecs.length > 0 ||
+           selectedDuration !== "Toutes";
+  };
+
+  // Afficher un loader pendant l'hydratation
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen relative overflow-hidden">
+        <BackgroundEffects />
+        <div className="ios-container pt-24 pb-20 relative z-20">
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen relative overflow-hidden pt-24 pb-20">
+    <div className="min-h-screen relative overflow-hidden">
       <BackgroundEffects />
-      <div className="ios-container px-6 md:px-10 mx-auto relative z-20">
-        {/* Header de la boutique */}
-        <div className="text-center mb-16 ios-fade-in">
-          <h1 className="ios-title mb-6">
-            Notre <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">Boutique</span>
+      
+      <div className="ios-container pt-24 pb-20 relative z-20">
+        {/* Header */}
+        <div className="text-center ios-fade-in mb-8">
+          <h1 className="ios-title text-4xl mb-4">
+            {selectedCategory !== "Tous" ? (
+              <>
+                Catégorie : <span className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 dark:from-purple-400 dark:via-purple-300 dark:to-indigo-400 bg-clip-text text-transparent">{selectedCategory}</span>
+              </>
+            ) : (
+              <>
+                Notre <span className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 dark:from-purple-400 dark:via-purple-300 dark:to-indigo-400 bg-clip-text text-transparent">Boutique</span>
+              </>
+            )}
           </h1>
-          <p className="ios-body text-xl max-w-3xl mx-auto">
-            Découvrez notre sélection de produits innovants, conçus pour transformer votre expérience digitale
+          <p className="ios-body text-lg">
+            {selectedCategory !== "Tous" 
+              ? `Explorez tous les produits de la catégorie ${selectedCategory}.`
+              : "Découvrez notre sélection de produits premium, soigneusement choisis pour vous offrir la meilleure expérience."
+            }
           </p>
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-12">
-          {/* Sidebar avec filtres */}
-          <div className="lg:w-80 flex-shrink-0">
-            <div className="filter-container ios-slide-up">
-              <h2 className="filter-title">Filtres</h2>
-              
-              {/* Recherche */}
-              <div className="filter-group">
-                <label className="block text-sm font-medium text-black/80 dark:text-white/80 mb-2">
-                  Rechercher
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Nom du produit..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="ios-input pr-10"
-                  />
-                  <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Catégories */}
-              <div className="filter-group">
-                <h3 className="text-sm font-medium text-black/80 dark:text-white/80 mb-3">Catégories</h3>
-                <div className="space-y-2">
-                  {categories.map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`filter-item w-full text-left p-3 rounded-xl transition-all duration-300 ${
-                        selectedCategory === category
-                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                          : 'hover:bg-white/5'
-                      }`}
-                    >
-                      <span className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${
-                          selectedCategory === category ? 'bg-purple-400' : 'bg-white/30'
-                        }`}></div>
-                        {category}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Fourchette de prix */}
-              <div className="filter-group">
-                <h3 className="text-sm font-medium text-black/80 dark:text-white/80 mb-3">Prix</h3>
-                <div className="space-y-4">
-                  <input
-                    type="range"
-                    min="0"
-                    max="10000"
-                    step="100"
-                    value={priceRange[1]}
-                    onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
-                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-                    style={{
-                      background: `linear-gradient(to right, #8B5CF6 0%, #8B5CF6 ${(priceRange[1] / 10000) * 100}%, #374151 ${(priceRange[1] / 10000) * 100}%, #374151 100%)`
-                    }}
-                  />
-                  <div className="flex justify-between text-sm text-black/60 dark:text-white/60">
-                    <span>0 €</span>
-                    <span>{priceRange[1]} €</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tri */}
-              <div className="filter-group">
-                <h3 className="text-sm font-medium text-black/80 dark:text-white/80 mb-3">Trier par</h3>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="ios-input appearance-none cursor-pointer bg-gray-950/50"
-                >
-                  <option value="name">Nom A-Z</option>
-                  <option value="price-low">Prix croissant</option>
-                  <option value="price-high">Prix décroissant</option>
-                </select>
-              </div>
-
-              {/* Reset */}
+          {selectedCategory !== "Tous" && (
+            <div className="mt-4">
               <button
                 onClick={() => {
-                  setSearchTerm("");
                   setSelectedCategory("Tous");
-                  setPriceRange([0, 10000]);
-                  setSortBy("name");
+                  window.history.pushState({}, '', '/articles');
                 }}
-                className="w-full ios-button-secondary justify-center"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 text-purple-300 rounded-full text-sm hover:bg-purple-500/30 transition-colors"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                Réinitialiser
+                Voir toutes les catégories
               </button>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Grille de produits */}
-          <div className="flex-1">
-            {/* Header de résultats */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-              <div className="ios-slide-up">
-                <h3 className="text-xl font-semibold text-black dark:text-white mb-2">
-                  {filteredArticles.length} produit{filteredArticles.length > 1 ? 's' : ''} trouvé{filteredArticles.length > 1 ? 's' : ''}
-                </h3>
-                {searchTerm && (
-                  <p className="text-black/60 dark:text-white/60">
-                    Résultats pour &quot;{searchTerm}&quot;
-                  </p>
+        {/* Layout avec sidebar et contenu */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          
+          {/* Sidebar des filtres */}
+          <div className="lg:w-80 flex-shrink-0">
+            <div className="dashboard-card sticky top-24">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                </svg>
+                Filtres
+              </h2>
+              
+              <div className="space-y-6">
+                {/* Recherche */}
+                <div className="space-y-2">
+                  <label className="ios-label">Recherche</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="ios-input pl-10"
+                      placeholder="Rechercher..."
+                    />
+                    <svg className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Catégorie */}
+                <div className="space-y-2">
+                  <label className="ios-label">Catégorie</label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="ios-input"
+                  >
+                    {categories.map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Durée d'abonnement */}
+                <div className="space-y-2">
+                  <label className="ios-label">Durée d'abonnement</label>
+                  <select
+                    value={selectedDuration}
+                    onChange={(e) => setSelectedDuration(e.target.value)}
+                    className="ios-input"
+                  >
+                    {availableDurations.map(duration => (
+                      <option key={duration} value={duration}>{duration}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Prix */}
+                <div className="space-y-3">
+                  <label className="ios-label">Prix (€)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      value={priceRange[0]}
+                      onChange={(e) => setPriceRange([parseInt(e.target.value) || 0, priceRange[1]])}
+                      className="ios-input text-sm"
+                      placeholder="Min"
+                      min={priceExtreme.min}
+                      max={priceExtreme.max}
+                    />
+                    <input
+                      type="number"
+                      value={priceRange[1]}
+                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value) || priceExtreme.max])}
+                      className="ios-input text-sm"
+                      placeholder="Max"
+                      min={priceExtreme.min}
+                      max={priceExtreme.max}
+                    />
+                  </div>
+                  <div className="text-xs text-white/60">
+                    {priceExtreme.min}€ - {priceExtreme.max}€
+                  </div>
+                </div>
+
+                {/* Options */}
+                <div className="space-y-3">
+                  <label className="ios-label">Options</label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={inStockOnly}
+                        onChange={(e) => setInStockOnly(e.target.checked)}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                      />
+                      <span className="text-white/80 text-sm">En stock uniquement</span>
+                    </label>
+                    
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={exactMatch}
+                        onChange={(e) => setExactMatch(e.target.checked)}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                      />
+                      <span className="text-white/80 text-sm">Correspondance exacte</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Spécifications techniques */}
+                {specifications.length > 0 && (
+                  <div className="space-y-3">
+                    <label className="ios-label">Spécifications techniques</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {specifications.map((spec) => (
+                        <label key={spec.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-gray-800/30 hover:bg-gray-700/30 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={selectedSpecs.includes(spec.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedSpecs(prev => [...prev, spec.id]);
+                              } else {
+                                setSelectedSpecs(prev => prev.filter(id => id !== spec.id));
+                              }
+                            }}
+                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                          />
+                          <span className="text-white/80 text-sm">{spec.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reset */}
+                {hasActiveFilters() && (
+                  <button
+                    onClick={resetFilters}
+                    className="w-full ios-button-destructive text-sm"
+                  >
+                    Réinitialiser les filtres
+                  </button>
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Grille de produits */}
+          {/* Contenu principal */}
+          <div className="flex-1">
+            {/* Barre de tri et résultats */}
+            <div className="dashboard-card mb-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="text-sm text-white/60">
+                  {filteredArticles.length} produit{filteredArticles.length > 1 ? 's' : ''} trouvé{filteredArticles.length > 1 ? 's' : ''}
+                  {searchTerm && ` pour "${searchTerm}"`}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-white/60">Trier par :</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="ios-input text-sm py-1 px-2 min-w-0"
+                  >
+                    <option value="name">Nom A-Z</option>
+                    <option value="price-low">Prix croissant</option>
+                    <option value="price-high">Prix décroissant</option>
+                    <option value="availability">Disponibilité</option>
+                    <option value="duration">Durée d'abonnement</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Grille des produits */}
             {filteredArticles.length > 0 ? (
-              <div className="ios-grid-3 ios-slide-up" style={{animationDelay: '0.2s'}}>
-                {filteredArticles.map((article, index) => (
-                  <Link href={`/articles/${article.id}`} key={article.id}>
-                    <div className="product-card group ios-fade-in" style={{animationDelay: `${0.1 * index}s`}}>
-                      <div className="product-image">
-                        {article.image ? (
-                          <Image
-                            src={article.image}
-                            alt={article.title}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-purple-500 via-purple-400 to-indigo-500 flex items-center justify-center">
-                            <span className="text-white text-4xl font-bold">
-                              {article.title.charAt(0)}
-                            </span>
-                          </div>
-                        )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredArticles.map((article) => (
+                  <Link key={article.id} href={`/articles/${article.id}`} className="group">
+                    <div className="bg-gray-800/40 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group-hover:scale-[1.02] border border-white/10">
+                      {/* Image container */}
+                      <div className="relative h-64 overflow-hidden">
+                        <Image
+                          src={article.image || "/api/placeholder/400/300"}
+                          alt={article.title}
+                          fill
+                          className="object-cover group-hover:scale-110 transition-transform duration-700"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                        />
                         
-                        {/* Badge catégorie */}
-                        <div className="absolute top-4 right-4">
-                          <span className="px-3 py-1 ios-glass-light text-white text-xs font-medium rounded-full backdrop-blur-md">
-                            {article.category}
+                        {/* Badges en overlay */}
+                        <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+                          <div className="flex flex-col gap-2">
+                            <span className="px-3 py-1 bg-gray-900/80 backdrop-blur text-white text-xs font-medium rounded-full">
+                              {article.categoryObj?.name || article.category}
+                            </span>
+                            {article.subscriptionDuration && (
+                              <span className="px-3 py-1 bg-cyan-500/90 backdrop-blur text-white text-xs font-medium rounded-full">
+                                {article.subscriptionDuration}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full backdrop-blur ${
+                            (article.stock || 0) > 0 
+                              ? 'bg-green-500/90 text-white' 
+                              : 'bg-red-500/90 text-white'
+                          }`}>
+                            {(article.stock || 0) > 0 ? 'En stock' : 'Épuisé'}
                           </span>
                         </div>
                         
-                        {/* Overlay au hover */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        
-                        {/* Action button au hover */}
-                        <div className="absolute bottom-4 left-4 right-4 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                          <button className="w-full ios-button-primary justify-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 616 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            Voir les détails
-                          </button>
-                        </div>
+                        {/* Overlay sombre au hover */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
                       </div>
                       
-                      <div className="product-content">
-                        <h2 className="product-title">
+                      {/* Contenu de la carte */}
+                      <div className="p-6">
+                        <h3 className="text-lg font-semibold text-white mb-2 line-clamp-1 group-hover:text-purple-300 transition-colors">
                           {article.title}
-                        </h2>
-                        <p className="ios-body text-sm line-clamp-2 mb-4">
+                        </h3>
+                        
+                        <p className="text-white/70 text-sm mb-4 line-clamp-2 leading-relaxed">
                           {article.description}
                         </p>
-                        <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                          <div className="product-price">
-                            {article.price.toFixed(2)} €
+                        
+                        {/* Informations du produit */}
+                        <div className="space-y-3">
+                          {/* Stock info */}
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-white/60">Disponibilité</span>
+                            <span className={`font-medium ${
+                              (article.stock || 0) > 0 ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {(article.stock || 0) > 0 
+                                ? `${article.stock || 0} en stock` 
+                                : 'Épuisé'
+                              }
+                            </span>
                           </div>
-                          <div className="flex items-center gap-1 text-yellow-400">
-                            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                            <span className="text-sm text-white/60">4.9</span>
+                          
+                          {/* Durée si présente */}
+                          {article.subscriptionDuration && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-white/60">Durée</span>
+                              <span className="text-cyan-400 font-medium">{article.subscriptionDuration}</span>
+                            </div>
+                          )}
+                          
+                          {/* Prix et action */}
+                          <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                            <div className="text-2xl font-bold text-white">
+                              {article.price?.toFixed(2)} €
+                            </div>
+                            
+                            <button className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 hover:scale-105 shadow-lg">
+                              Voir
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -249,30 +527,22 @@ const ArticlesClient = ({ articles: initialArticles }) => {
                 ))}
               </div>
             ) : (
-              /* Message si aucun résultat */
-              <div className="text-center py-20 ios-fade-in">
-                <div className="ios-glass-light rounded-3xl p-12 max-w-md mx-auto">
-                  <svg className="w-16 h-16 text-purple-400 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <div className="dashboard-card text-center py-12">
+                <div className="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8V4a1 1 0 00-1-1H7a1 1 0 00-1 1v1m8 0V4.5a.5.5 0 00-.5-.5h-3a.5.5 0 00-.5.5V5" />
                   </svg>
-                  <h3 className="text-xl font-semibold text-white mb-4">
-                    Aucun produit trouvé
-                  </h3>
-                  <p className="ios-body">
-                    Essayez de modifier vos filtres ou votre recherche pour trouver ce que vous cherchez.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSearchTerm("");
-                      setSelectedCategory("Tous");
-                      setPriceRange([0, 10000]);
-                      setSortBy("name");
-                    }}
-                    className="mt-6 ios-button-primary"
-                  >
-                    Voir tous les produits
-                  </button>
                 </div>
+                <h3 className="text-xl font-semibold text-white mb-2">Aucun produit trouvé</h3>
+                <p className="ios-body mb-6">
+                  Aucun produit ne correspond à vos critères de recherche. Essayez de modifier vos filtres.
+                </p>
+                <button
+                  onClick={resetFilters}
+                  className="ios-button-secondary"
+                >
+                  Réinitialiser les filtres
+                </button>
               </div>
             )}
           </div>
@@ -282,4 +552,4 @@ const ArticlesClient = ({ articles: initialArticles }) => {
   );
 };
 
-export default ArticlesClient; 
+export default ArticlesClient;

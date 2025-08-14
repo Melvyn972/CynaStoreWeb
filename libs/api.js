@@ -15,13 +15,10 @@ apiClient.interceptors.response.use(
     let message = "";
 
     if (error.response?.status === 401) {
-      // User not auth, ask to re login
-      toast.error("Please login");
-      // automatically redirect to /dashboard page after login
+      toast.error("Veuillez vous connecter");
       return signIn(undefined, { callbackUrl: config.auth.callbackUrl });
     } else if (error.response?.status === 403) {
-      // User not authorized, must subscribe/purchase/pick a plan
-      message = "Pick a plan to use this feature";
+      message = "Choisissez un plan pour utiliser cette fonctionnalité";
     } else {
       message =
         error?.response?.data?.error || error.message || error.toString();
@@ -32,11 +29,10 @@ apiClient.interceptors.response.use(
 
     console.error(error.message);
 
-    // Automatically display errors to the user
     if (error.message) {
       toast.error(error.message);
     } else {
-      toast.error("something went wrong...");
+      toast.error("Une erreur s'est produite...");
     }
     return Promise.reject(error);
   }
