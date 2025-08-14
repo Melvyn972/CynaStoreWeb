@@ -27,6 +27,10 @@ export default async function Dashboard() {
       email: true,
       role: true,
       image: true,
+      consentMarketing: true,
+      consentAnalytics: true,
+      consentThirdParty: true,
+      dataRetentionPeriod: true,
     },
   });
 
@@ -367,6 +371,24 @@ export default async function Dashboard() {
                         : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                     }`}>
                       {user.consentAnalytics ? 'Accepté' : 'Refusé'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="p-4 ios-glass-light rounded-2xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-orange-500 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                      <span className="text-sm text-black/80 dark:text-white/80">Tiers</span>
+                    </div>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      user.consentThirdParty 
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                    }`}>
+                      {user.consentThirdParty ? 'Accepté' : 'Refusé'}
                     </span>
                   </div>
                 </div>

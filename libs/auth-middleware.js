@@ -5,13 +5,21 @@ import prisma from '@/libs/prisma';
 
 export async function getAuthenticatedUser(request) {
   const session = await getServerSession(authOptions);
-  if (session?.user) {
-    return {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      role: session.user.role || 'USER',
-    };
+  if (session?.user?.email) {
+    // Récupérer l'utilisateur depuis la base de données car session.user.id n'existe pas par défaut
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      }
+    });
+    
+    if (user) {
+      return user;
+    }
   }
 
   const authHeader = request.headers.get('authorization');
