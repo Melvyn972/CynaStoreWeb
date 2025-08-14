@@ -42,7 +42,14 @@ export async function GET() {
             id: true,
             title: true,
             price: true,
-            image: true
+            image: true,
+            category: true,
+            categoryObj: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
           }
         }
       },
@@ -73,7 +80,9 @@ export async function GET() {
         articleTitle: purchase.article?.title || 'Article supprimé',
         price: purchase.article?.price || 0,
         quantity: purchase.quantity || 1,
-        image: purchase.article?.image
+        image: purchase.article?.image,
+        category: purchase.article?.category || 'Non catégorisé',
+        categoryName: purchase.article?.categoryObj?.name || purchase.article?.category || 'Non catégorisé'
       });
     });
 

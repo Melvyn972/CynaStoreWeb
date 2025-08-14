@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import BackgroundEffects from "@/app/components/BackgroundEffects";
+import SalesByCategoryChart from "@/components/SalesByCategoryChart";
 
 export default function OrdersAdmin() {
   const [orders, setOrders] = useState([]);
@@ -263,6 +264,11 @@ export default function OrdersAdmin() {
             <div className="dashboard-stat-value text-4xl mb-2">{stats.uniqueCustomers}</div>
             <div className="dashboard-stat-label">Clients Uniques</div>
           </div>
+        </div>
+
+        {/* Graphique ventes par catégorie */}
+        <div className="ios-slide-up" style={{animationDelay: '0.1s'}}>
+          <SalesByCategoryChart orders={filteredOrders} />
         </div>
 
         {/* Filtres */}

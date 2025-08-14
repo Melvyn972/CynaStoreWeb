@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import BackgroundEffects from "@/app/components/BackgroundEffects";
@@ -10,6 +10,7 @@ import { useHydration } from "@/hooks/useHydration";
 const ArticlesClient = ({ articles: initialArticles }) => {
   const isHydrated = useHydration();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [priceRange, setPriceRange] = useState([0, 10000]);
@@ -59,7 +60,9 @@ const ArticlesClient = ({ articles: initialArticles }) => {
       const cats = [...new Set(initialArticles.map(article => 
         article.categoryObj?.name || article.category
       ).filter(Boolean))];
-      setCategories(["Tous", ...cats]);
+      setCategories(["Tous", ...cats.sort()]);
+    } else {
+      setCategories(["Tous"]);
     }
   };
 
@@ -181,6 +184,18 @@ const ArticlesClient = ({ articles: initialArticles }) => {
     return filtered;
   }, [initialArticles, searchTerm, selectedCategory, priceRange, sortBy, inStockOnly, exactMatch, selectedSpecs, selectedDuration, searchParams]);
 
+  const handleCategoryChange = (newCategory) => {
+    setSelectedCategory(newCategory);
+    
+    if (newCategory === "Tous") {
+      router.push('/articles');
+    } else {
+      const params = new URLSearchParams();
+      params.set('category', encodeURIComponent(newCategory));
+      router.push(`/articles?${params.toString()}`);
+    }
+  };
+
   const resetFilters = () => {
     setSearchTerm("");
     setSelectedCategory("Tous");
@@ -190,6 +205,8 @@ const ArticlesClient = ({ articles: initialArticles }) => {
     setExactMatch(false);
     setSelectedSpecs([]);
     setSelectedDuration("Toutes");
+    
+    router.push('/articles');
   };
 
   const hasActiveFilters = () => {
@@ -203,7 +220,6 @@ const ArticlesClient = ({ articles: initialArticles }) => {
            selectedDuration !== "Toutes";
   };
 
-  // Afficher un loader pendant l'hydratation
   if (!isHydrated) {
     return (
       <div className="min-h-screen relative overflow-hidden">
@@ -244,10 +260,7 @@ const ArticlesClient = ({ articles: initialArticles }) => {
           {selectedCategory !== "Tous" && (
             <div className="mt-4">
               <button
-                onClick={() => {
-                  setSelectedCategory("Tous");
-                  window.history.pushState({}, '', '/articles');
-                }}
+                onClick={() => handleCategoryChange("Tous")}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 text-purple-300 rounded-full text-sm hover:bg-purple-500/30 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,7 +308,7 @@ const ArticlesClient = ({ articles: initialArticles }) => {
                   <label className="ios-label">Catégorie</label>
                   <select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                     className="ios-input"
                   >
                     {categories.map(category => (
