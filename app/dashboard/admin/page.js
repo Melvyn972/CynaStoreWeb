@@ -13,7 +13,7 @@ export default async function AdminDashboard() {
   // Obtenir le nombre d'utilisateurs par rôle
   const userStats = await prisma.$queryRaw`
     SELECT role, COUNT(*) as count 
-    FROM User 
+    FROM "User" 
     GROUP BY role
   `;
   
