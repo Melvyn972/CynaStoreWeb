@@ -120,16 +120,29 @@ async function handleCartPaymentSuccess(session, cartItems, userId, customerId) 
     });
   }
 
-  // Create purchases for each cart item
+  // Create purchases for each cart item and update stock
   await Promise.all(cartItems.map(async (item) => {
-    await prisma.purchase.create({
-      data: {
-        userId: user.id,
-        articleId: item.productId,
-        quantity: item.quantity,
-        paidAt: new Date(),
-        orderId: session.id
-      }
+    await prisma.$transaction(async (tx) => {
+      // Create the purchase
+      await tx.purchase.create({
+        data: {
+          userId: user.id,
+          articleId: item.productId,
+          quantity: item.quantity,
+          paidAt: new Date(),
+          orderId: session.id
+        }
+      });
+
+      // Update the article stock
+      await tx.articles.update({
+        where: { id: item.productId },
+        data: {
+          stock: {
+            decrement: item.quantity
+          }
+        }
+      });
     });
   }));
 
@@ -197,7 +210,18 @@ async function handlePlanPaymentSuccess(session, plan, userId, customerId) {
             userId: user.id,
             articleId: plan.articleId,
             paidAt: new Date(),
-            orderId: session.id
+            orderId: session.id,
+            quantity: 1
+          }
+        });
+
+        // Update the article stock for plan purchases
+        await tx.articles.update({
+          where: { id: plan.articleId },
+          data: {
+            stock: {
+              decrement: 1
+            }
           }
         });
       }
@@ -214,16 +238,28 @@ async function handlePaymentSuccess(session) {
     throw new Error("Invalid session metadata");
   }
 
-  // Record the purchases in the database
+  // Record the purchases in the database and update stock
   for (const [articleId, quantity] of Object.entries(items)) {
-    await prisma.purchase.create({
-      data: {
-        userId,
-        articleId,
-        quantity: parseInt(quantity),
-        paidAt: new Date(),
-        orderId: session.id,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.purchase.create({
+        data: {
+          userId,
+          articleId,
+          quantity: parseInt(quantity),
+          paidAt: new Date(),
+          orderId: session.id,
+        },
+      });
+
+      // Update the article stock
+      await tx.articles.update({
+        where: { id: articleId },
+        data: {
+          stock: {
+            decrement: parseInt(quantity)
+          }
+        }
+      });
     });
   }
 
@@ -248,17 +284,29 @@ async function handleCompanyPaymentSuccess(session) {
     throw new Error("Invalid session metadata for company purchase");
   }
 
-  // Record the company purchases in the database
+  // Record the company purchases in the database and update stock
   for (const [articleId, quantity] of Object.entries(items)) {
-    await prisma.companyPurchase.create({
-      data: {
-        companyId,
-        articleId,
-        purchasedById,
-        quantity: parseInt(quantity),
-        paidAt: new Date(),
-        orderId: session.id,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.companyPurchase.create({
+        data: {
+          companyId,
+          articleId,
+          purchasedById,
+          quantity: parseInt(quantity),
+          paidAt: new Date(),
+          orderId: session.id,
+        },
+      });
+
+      // Update the article stock
+      await tx.articles.update({
+        where: { id: articleId },
+        data: {
+          stock: {
+            decrement: parseInt(quantity)
+          }
+        }
+      });
     });
   }
 
@@ -329,13 +377,26 @@ async function handleInvoicePaid(invoice) {
       
       // Only create the purchase if it doesn't exist
       if (!existingPurchase) {
-        await prisma.purchase.create({
-          data: {
-            userId: user.id,
-            articleId: plan.articleId,
-            paidAt: new Date(),
-            orderId: invoice.id
-          }
+        await prisma.$transaction(async (tx) => {
+          await tx.purchase.create({
+            data: {
+              userId: user.id,
+              articleId: plan.articleId,
+              paidAt: new Date(),
+              orderId: invoice.id,
+              quantity: 1
+            }
+          });
+
+          // Update the article stock for recurring payments
+          await tx.articles.update({
+            where: { id: plan.articleId },
+            data: {
+              stock: {
+                decrement: 1
+              }
+            }
+          });
         });
       }
     }
