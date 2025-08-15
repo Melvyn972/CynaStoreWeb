@@ -210,8 +210,8 @@ export default function CheckoutPage() {
     try {
       // Create Stripe checkout session
       const endpoint = companyId
-        ? '/api/stripe/create-company-checkout'
-        : '/api/stripe/create-cart-checkout';
+        ? '/stripe/create-company-checkout'
+        : '/stripe/create-cart-checkout';
       
       const payload = {
         lineItems,
