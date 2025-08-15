@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import prisma from "@/libs/prisma";
 import { headers } from "next/headers";
+import configFile from "@/config";
+import { findCheckoutSession } from "@/libs/stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -20,22 +22,73 @@ export async function POST(request) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
-  // Handle the event
+  const data = event.data;
+  const eventType = event.type;
+
   try {
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
-      
-      // Check if this is a company purchase
-      if (session.metadata?.companyId) {
-        await handleCompanyPaymentSuccess(session);
-      } else {
-        await handlePaymentSuccess(session);
+    switch (eventType) {
+      case "checkout.session.completed": {
+        const session = await findCheckoutSession(data.object.id);
+        const customerId = session?.customer;
+        const priceId = session?.line_items?.data[0]?.price.id;
+        const userId = data.object.client_reference_id;
+        const plan = configFile.stripe?.plans?.find((p) => p.priceId === priceId);
+
+        // Check if this is a company purchase
+        if (data.object.metadata?.companyId) {
+          await handleCompanyPaymentSuccess(data.object);
+        } else {
+          // Handle cart items from metadata (new format)
+          const cartItems = data.object.metadata?.cart_items ? 
+            JSON.parse(data.object.metadata.cart_items) : null;
+
+          if (cartItems) {
+            await handleCartPaymentSuccess(data.object, cartItems, userId, customerId);
+          } else if (plan) {
+            // Handle plan/subscription purchase (legacy format)
+            await handlePlanPaymentSuccess(data.object, plan, userId, customerId);
+          } else {
+            // Handle individual items (legacy format)
+            await handlePaymentSuccess(data.object);
+          }
+        }
+        break;
       }
+
+      case "checkout.session.expired": {
+        // User didn't complete the transaction
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        // The customer might have changed the plan
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        // Handle subscription cancellation
+        await handleSubscriptionDeleted(data.object);
+        break;
+      }
+
+      case "invoice.paid": {
+        // Handle recurring payment
+        await handleInvoicePaid(data.object);
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        // Handle payment failure
+        break;
+      }
+
+      default:
+        console.log(`Unhandled event type: ${eventType}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error(`Error processing webhook: ${error.message}`);
+    console.error(`Error processing webhook (${eventType}): ${error.message}`);
     return NextResponse.json(
       { error: "Error processing webhook" },
       { status: 500 }
@@ -43,6 +96,116 @@ export async function POST(request) {
   }
 }
 
+// Handle cart payment success (new format with cart_items metadata)
+async function handleCartPaymentSuccess(session, cartItems, userId, customerId) {
+  if (!userId) {
+    console.error("No user ID found for cart purchase");
+    throw new Error("No user ID found for cart purchase");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  });
+
+  if (!user) {
+    console.error("User not found for cart purchase");
+    throw new Error("User not found for cart purchase");
+  }
+
+  // Update customer ID if needed
+  if (!user.customerId && customerId) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { customerId }
+    });
+  }
+
+  // Create purchases for each cart item
+  await Promise.all(cartItems.map(async (item) => {
+    await prisma.purchase.create({
+      data: {
+        userId: user.id,
+        articleId: item.productId,
+        quantity: item.quantity,
+        paidAt: new Date(),
+        orderId: session.id
+      }
+    });
+  }));
+
+  // Clear the user's cart
+  await prisma.cart.deleteMany({
+    where: { userId: user.id }
+  });
+}
+
+// Handle plan/subscription payment success (legacy format)
+async function handlePlanPaymentSuccess(session, plan, userId, customerId) {
+  const customer = await stripe.customers.retrieve(customerId);
+  let user;
+
+  // Get or create the user
+  if (userId) {
+    user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+  } else if (customer.email) {
+    user = await prisma.user.findUnique({
+      where: { email: customer.email }
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email: customer.email,
+          name: customer.name,
+        }
+      });
+    }
+  } else {
+    console.error("No user found");
+    throw new Error("No user found");
+  }
+
+  // Update user data + Grant user access to purchased article or plan
+  await prisma.$transaction(async (tx) => {
+    // Update basic user data
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        priceId: plan.priceId,
+        customerId: customerId,
+      }
+    });
+    
+    // If plan contains an articleId, add it as a purchase
+    if (plan.articleId) {
+      // Check if the purchase already exists
+      const existingPurchase = await tx.purchase.findUnique({
+        where: {
+          userId_articleId: {
+            userId: user.id,
+            articleId: plan.articleId
+          }
+        }
+      });
+      
+      // Only create the purchase if it doesn't exist
+      if (!existingPurchase) {
+        await tx.purchase.create({
+          data: {
+            userId: user.id,
+            articleId: plan.articleId,
+            paidAt: new Date(),
+            orderId: session.id
+          }
+        });
+      }
+    }
+  });
+}
+
+// Handle individual payment success (legacy format)
 async function handlePaymentSuccess(session) {
   const userId = session.metadata.userId;
   const items = JSON.parse(session.metadata.items || "{}");
@@ -75,6 +238,7 @@ async function handlePaymentSuccess(session) {
   });
 }
 
+// Handle company payment success
 async function handleCompanyPaymentSuccess(session) {
   const companyId = session.metadata.companyId;
   const purchasedById = session.metadata.purchasedById; // User who made the purchase
@@ -110,4 +274,70 @@ async function handleCompanyPaymentSuccess(session) {
       },
     },
   });
+}
+
+// Handle subscription deletion
+async function handleSubscriptionDeleted(subscription) {
+  const user = await prisma.user.findFirst({
+    where: { customerId: subscription.customer }
+  });
+
+  if (user) {
+    // Find the article associated with this plan
+    const plan = configFile.stripe?.plans?.find(
+      (p) => p.priceId === user.priceId
+    );
+    
+    if (plan && plan.articleId) {
+      // Remove the purchase
+      await prisma.purchase.deleteMany({
+        where: {
+          userId: user.id,
+          articleId: plan.articleId
+        }
+      });
+    }
+  }
+}
+
+// Handle invoice payment
+async function handleInvoicePaid(invoice) {
+  const priceId = invoice.lines.data[0].price.id;
+  const customerId = invoice.customer;
+
+  const user = await prisma.user.findFirst({
+    where: { customerId }
+  });
+
+  if (user) {
+    // Make sure the invoice is for the same plan (priceId) the user subscribed to
+    if (user.priceId !== priceId) return;
+
+    // Find the article associated with this plan
+    const plan = configFile.stripe?.plans?.find((p) => p.priceId === priceId);
+    
+    if (plan && plan.articleId) {
+      // Check if the purchase already exists
+      const existingPurchase = await prisma.purchase.findUnique({
+        where: {
+          userId_articleId: {
+            userId: user.id,
+            articleId: plan.articleId
+          }
+        }
+      });
+      
+      // Only create the purchase if it doesn't exist
+      if (!existingPurchase) {
+        await prisma.purchase.create({
+          data: {
+            userId: user.id,
+            articleId: plan.articleId,
+            paidAt: new Date(),
+            orderId: invoice.id
+          }
+        });
+      }
+    }
+  }
 } 
